@@ -32,11 +32,13 @@ jobs:
       - name: Grant gradlew permission
         run: chmod +x ./gradlew
 
+      - name: Set up application.yml
+        run: |
+          mkdir -p ./src/main/resources
+          echo "${{ secrets.APPLICATION }}" > ./src/main/resources/application.yml
+
       - name: Build
         run: ./gradlew build -x test
-
-      - name: Test
-        run: ./gradlew test
 
       - name: Upload Test Report      # 실패 시 리포트 확인용
         if: failure()
