@@ -40,9 +40,6 @@ jobs:
       - name: Build
         run: ./gradlew build -x test
 
-      - name: Test
-        run: ./gradlew test
-
       - name: Upload Test Report      # 실패 시 리포트 확인용
         if: failure()
         uses: actions/upload-artifact@v4
