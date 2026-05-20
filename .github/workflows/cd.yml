@@ -42,8 +42,6 @@ jobs:
           tags: |
             ${{ secrets.DOCKER_REPO }}:${{ github.sha }}
             ${{ secrets.DOCKER_REPO }}:latest
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
 
       - name: Deploy to server with Docker
         uses: appleboy/ssh-action@master
