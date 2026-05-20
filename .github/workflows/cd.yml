@@ -1,0 +1,61 @@
+name: CD workflow
+
+on:
+  workflow_run:
+    workflows:
+      - CI workflow
+    types:
+      - completed
+    branches:
+      - main
+
+jobs:
+  build:
+    name: Build and Push Docker Image
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Source Code
+        uses: actions/checkout@v4
+
+      - name: Set up application.yml
+        run: |
+          mkdir -p ./src/main/resources
+          echo "${{ secrets.APPLICATION }}" | base64 -d > ./src/main/resources/application.yml
+
+      - name: Login DockerHub
+        run:
+          echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u "${{ secrets.DOCKER_USERNAME }}" --password-stdi
+
+      - name: Build & Push Docker Image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./Dockerfile
+          push: true
+          platforms: linux/arm64
+          tags: |
+            ${{ secrets.DOCKER_REPO }}:${{ github.sha }}
+            ${{ secrets.DOCKER_REPO }}:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Deploy to server with Docker
+        uses: appleboy/ssh-action@master
+        env:
+          DOCKER_REPO: ${{ secrets.DOCKER_REPO }}
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USERNAME }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          envs: DOCKER_REPO
+          script: |
+            set -e
+            cd /home/ubuntu/app
+            
+            echo "DOCKER_REPO=${DOCKER_REPO}" > .env
+                        
+            docker compose pull
+            docker compose up -d
+            
+            docker image prune -f
