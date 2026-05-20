@@ -1,6 +1,7 @@
 package SeCause.SeCause_be.global.security.jwt;
 
 import SeCause.SeCause_be.domain.user.entity.User;
+import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
 import lombok.RequiredArgsConstructor;
@@ -28,6 +29,23 @@ public class JwtTokenProvider {
                 .expiration(expiration)
                 .signWith(getSigningKey())
                 .compact();
+    }
+
+    public Long getUserId(String token) {
+        return Long.valueOf(getClaims(token).getSubject());
+    }
+
+    public boolean isValidToken(String token) {
+        getClaims(token);
+        return true;
+    }
+
+    private Claims getClaims(String token) {
+        return Jwts.parser()
+                .verifyWith(getSigningKey())
+                .build()
+                .parseSignedClaims(token)
+                .getPayload();
     }
 
     private SecretKey getSigningKey() {
