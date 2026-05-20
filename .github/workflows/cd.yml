@@ -33,6 +33,9 @@ jobs:
       - name: Grant gradlew permission
         run: chmod +x ./gradlew
 
+      - name: Build with Gradle
+        run: ./gradlew build -x test
+
       - name: Set up QEMU           # arm64 크로스 컴파일용
         uses: docker/setup-qemu-action@v3
         with:
