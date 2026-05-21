@@ -33,7 +33,7 @@ jobs:
       - name: Grant gradlew permission
         run: chmod +x ./gradlew
 
-      - name: Build with Gradle
+      - name: Build JAR with Gradle
         run: ./gradlew build -x test
 
       - name: Set up QEMU           # arm64 크로스 컴파일용
@@ -72,11 +72,10 @@ jobs:
           envs: DOCKER_REPO
           script: |
             set -e
-            cd /home/ubuntu/app
-            
-            echo "DOCKER_REPO=${DOCKER_REPO}" > .env
-                        
+            mkdir -p /home/ubuntu/app
+            cd /home/ubuntu/ap
+
             docker compose pull
             docker compose up -d
-            
+
             docker image prune -f
