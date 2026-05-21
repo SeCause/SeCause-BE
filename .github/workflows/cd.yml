@@ -12,7 +12,7 @@ on:
 jobs:
   build:
     name: Build and Push Docker Image
-    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    if: github.repository == 'SeCause/SeCause-BE' && github.event.workflow_run.conclusion == 'success'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Source Code
@@ -73,7 +73,7 @@ jobs:
           script: |
             set -e
             mkdir -p /home/ubuntu/app
-            cd /home/ubuntu/ap
+            cd /home/ubuntu/app
 
             docker compose pull
             docker compose up -d
