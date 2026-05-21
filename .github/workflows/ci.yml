@@ -10,6 +10,7 @@ on:
 
 jobs:
   ci:
+    if: github.repository == 'SeCause/SeCause-BE'
     runs-on: ubuntu-latest
 
     steps:
