@@ -12,7 +12,7 @@ on:
 jobs:
   build:
     name: Build and Push Docker Image
-    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    if: github.repository == 'SeCause/SeCause-BE' && github.event.workflow_run.conclusion == 'success'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Source Code
@@ -33,7 +33,7 @@ jobs:
       - name: Grant gradlew permission
         run: chmod +x ./gradlew
 
-      - name: Build with Gradle
+      - name: Build JAR with Gradle
         run: ./gradlew build -x test
 
       - name: Set up QEMU           # arm64 크로스 컴파일용
@@ -72,11 +72,10 @@ jobs:
           envs: DOCKER_REPO
           script: |
             set -e
+            mkdir -p /home/ubuntu/app
             cd /home/ubuntu/app
-            
-            echo "DOCKER_REPO=${DOCKER_REPO}" > .env
-                        
+
             docker compose pull
             docker compose up -d
-            
+
             docker image prune -f

@@ -1,7 +1,0 @@
-services:
-  app:
-    image: ${DOCKER_REPO}:latest
-    container_name: secause-app
-    ports:
-      - "8080:8080"
-    restart: unless-stopped
