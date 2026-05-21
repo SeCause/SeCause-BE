@@ -33,7 +33,7 @@ jobs:
       - name: Grant gradlew permission
         run: chmod +x ./gradlew
 
-      - name: Build JAR with Gradle
+      - name: Build with Gradle
         run: ./gradlew build -x test
 
       - name: Set up QEMU           # arm64 크로스 컴파일용
