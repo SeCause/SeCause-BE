@@ -2,13 +2,16 @@ package SeCause.SeCause_be.domain.analysis.repository;
 
 import SeCause.SeCause_be.domain.analysis.entity.QAnalysis;
 import SeCause.SeCause_be.domain.analysis.entity.QAnalysisResult;
+import SeCause.SeCause_be.domain.repository.dto.RepositoryIssueDetailResponse;
 import SeCause.SeCause_be.domain.repository.dto.RepositoryIssueListResponse;
 import SeCause.SeCause_be.domain.repository.dto.RepositoryIssueSummaryResponse;
+import SeCause.SeCause_be.domain.repository.dto.SecurityReferenceResponse;
 import SeCause.SeCause_be.domain.repository.dto.VulnerableFileListResponse;
 import SeCause.SeCause_be.domain.repository.dto.VulnerableFileSummaryResponse;
 import SeCause.SeCause_be.domain.repository.entity.FileType;
 import SeCause.SeCause_be.domain.repository.entity.QRepository;
 import SeCause.SeCause_be.domain.repository.entity.QRepositoryFile;
+import SeCause.SeCause_be.domain.security.entity.QSecurityReference;
 import SeCause.SeCause_be.domain.vulnerability.entity.QCodeVulnerability;
 import SeCause.SeCause_be.domain.vulnerability.entity.QInfraVulnerability;
 import SeCause.SeCause_be.domain.vulnerability.entity.Severity;
@@ -37,6 +40,7 @@ public class AnalysisResultRepositoryImpl implements AnalysisResultRepositoryCus
     private static final QRepository infraRepository = new QRepository("infraRepository");
     private static final QRepositoryFile codeRepositoryFile = new QRepositoryFile("codeRepositoryFile");
     private static final QRepositoryFile infraRepositoryFile = new QRepositoryFile("infraRepositoryFile");
+    private static final QSecurityReference securityReference = QSecurityReference.securityReference;
     private static final NumberExpression<Long> codeIssueCount = codeVulnerability.count();
     private static final NumberExpression<Long> infraIssueCount = infraVulnerability.count();
     private static final NumberExpression<Long> codeCriticalCount =
@@ -99,6 +103,62 @@ public class AnalysisResultRepositoryImpl implements AnalysisResultRepositoryCus
         );
     }
 
+    @Override
+    public RepositoryIssueDetailResponse findRepositoryIssueDetail(
+            Long repositoryId,
+            Long userId,
+            Long analysisResultId
+    ) {
+        Tuple tuple = baseQuery(repositoryId, userId, null)
+                .select(
+                        this.analysisResult.analysisResultId,
+                        codeVulnerability.vulnerabilityType,
+                        infraVulnerability.vulnerabilityType,
+                        codeVulnerability.severity,
+                        infraVulnerability.severity,
+                        codeRepositoryFile.filePath,
+                        infraRepositoryFile.filePath,
+                        codeVulnerability.lineStart,
+                        codeVulnerability.lineEnd,
+                        codeVulnerability.codeSnippet,
+                        infraVulnerability.codeSnippet,
+                        this.analysisResult.description,
+                        this.analysisResult.summary,
+                        this.analysisResult.attackScenario,
+                        this.analysisResult.fixCode,
+                        this.analysisResult.fixSummary
+                )
+                .where(this.analysisResult.analysisResultId.eq(analysisResultId))
+                .fetchOne();
+
+        if (tuple == null) {
+            return null;
+        }
+
+        Severity codeSeverity = tuple.get(codeVulnerability.severity);
+        Severity infraSeverity = tuple.get(infraVulnerability.severity);
+        Severity severity = codeSeverity != null ? codeSeverity : infraSeverity;
+
+        return new RepositoryIssueDetailResponse(
+                tuple.get(this.analysisResult.analysisResultId),
+                firstNonNull(
+                        tuple.get(codeVulnerability.vulnerabilityType),
+                        tuple.get(infraVulnerability.vulnerabilityType)
+                ),
+                severity == null ? null : severity.name(),
+                firstNonNull(tuple.get(codeRepositoryFile.filePath), tuple.get(infraRepositoryFile.filePath)),
+                tuple.get(codeVulnerability.lineStart),
+                tuple.get(codeVulnerability.lineEnd),
+                firstNonNull(tuple.get(codeVulnerability.codeSnippet), tuple.get(infraVulnerability.codeSnippet)),
+                tuple.get(this.analysisResult.description),
+                tuple.get(this.analysisResult.summary),
+                tuple.get(this.analysisResult.attackScenario),
+                tuple.get(this.analysisResult.fixCode),
+                tuple.get(this.analysisResult.fixSummary),
+                findSecurityReferences(analysisResultId)
+        );
+    }
+
     private JPAQuery<?> baseQuery(Long repositoryId, Long userId, Severity severity) {
         return queryFactory
                 .from(analysisResult)
@@ -153,6 +213,37 @@ public class AnalysisResultRepositoryImpl implements AnalysisResultRepositoryCus
 
     private String firstNonNull(String first, String second) {
         return first != null ? first : second;
+    }
+
+    private List<SecurityReferenceResponse> findSecurityReferences(Long analysisResultId) {
+        QCodeVulnerability referenceCodeVulnerability = new QCodeVulnerability("referenceCodeVulnerability");
+        QInfraVulnerability referenceInfraVulnerability = new QInfraVulnerability("referenceInfraVulnerability");
+        QAnalysisResult referenceAnalysisResult = new QAnalysisResult("referenceAnalysisResult");
+
+        return queryFactory
+                .select(
+                        securityReference.securityReferenceId,
+                        securityReference.referenceType,
+                        securityReference.title,
+                        securityReference.referenceUrl
+                )
+                .from(securityReference)
+                .leftJoin(securityReference.codeVulnerability, referenceCodeVulnerability)
+                .leftJoin(securityReference.infraVulnerability, referenceInfraVulnerability)
+                .leftJoin(referenceAnalysisResult)
+                .on(referenceAnalysisResult.codeVulnerability.eq(referenceCodeVulnerability)
+                        .or(referenceAnalysisResult.infraVulnerability.eq(referenceInfraVulnerability)))
+                .where(referenceAnalysisResult.analysisResultId.eq(analysisResultId))
+                .orderBy(securityReference.securityReferenceId.asc())
+                .fetch()
+                .stream()
+                .map(tuple -> new SecurityReferenceResponse(
+                        tuple.get(securityReference.securityReferenceId),
+                        tuple.get(securityReference.referenceType),
+                        tuple.get(securityReference.title),
+                        tuple.get(securityReference.referenceUrl)
+                ))
+                .toList();
     }
 
     private List<Tuple> fetchCodeVulnerableFiles(Long repositoryId, Long userId) {

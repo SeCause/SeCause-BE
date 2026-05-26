@@ -1,6 +1,7 @@
 package SeCause.SeCause_be.domain.repository.controller;
 
 import SeCause.SeCause_be.domain.repository.dto.RepositoryIssueListResponse;
+import SeCause.SeCause_be.domain.repository.dto.RepositoryIssueDetailResponse;
 import SeCause.SeCause_be.domain.repository.dto.RepositoryIssueSeverity;
 import SeCause.SeCause_be.domain.repository.dto.VulnerableFileListResponse;
 import SeCause.SeCause_be.global.apiPayload.response.ApiResponse;
@@ -242,5 +243,108 @@ public interface RepositoryIssueApi {
             @AuthenticationPrincipal UserPrincipal userPrincipal,
 
             @PathVariable Long repositoryId
+    );
+
+    @Operation(
+            summary = "이슈 상세 조회",
+            description = "레포지토리 분석 이슈의 상세 정보와 관련 보안 레퍼런스를 조회합니다.",
+            security = @SecurityRequirement(name = "Bearer Authentication"),
+            parameters = {
+                    @Parameter(
+                            name = "repositoryId",
+                            description = "레포지토리 ID",
+                            required = true,
+                            in = ParameterIn.PATH,
+                            example = "1"
+                    ),
+                    @Parameter(
+                            name = "analysisResultId",
+                            description = "분석 결과 ID",
+                            required = true,
+                            in = ParameterIn.PATH,
+                            example = "1"
+                    )
+            }
+    )
+    @io.swagger.v3.oas.annotations.responses.ApiResponse(
+            responseCode = "200",
+            description = "이슈 상세 조회 성공",
+            content = @Content(
+                    schema = @Schema(implementation = ApiResponse.class),
+                    examples = @ExampleObject(
+                            name = "success",
+                            value = """
+                                    {
+                                      "isSuccess": true,
+                                      "code": "COMMON2000",
+                                      "message": "이슈 상세 조회가 완료됐습니다.",
+                                      "result": {
+                                        "analysisResultId": 1,
+                                        "vulnerabilityType": "SQL_INJECTION",
+                                        "severity": "CRITICAL",
+                                        "filePath": "src/utils/database.ts",
+                                        "lineStart": 25,
+                                        "lineEnd": 30,
+                                        "codeSnippet": "const q = 'SELECT * FROM users WHERE id=' + userId;",
+                                        "description": "사용자 입력값이 검증 없이 SQL 쿼리에 직접 포함됩니다.",
+                                        "summary": "비매개변수화 쿼리로 인한 SQL Injection 취약점",
+                                        "attackScenario": "userId=1 OR 1=1 -- 입력 시 모든 사용자 데이터에 접근 가능합니다.",
+                                        "fixCode": "const q = 'SELECT * FROM users WHERE id=$1';\\ndb.query(q, [userId]);",
+                                        "fixSummary": "Prepared Statement로 파라미터 바인딩을 적용합니다.",
+                                        "references": [
+                                          {
+                                            "securityReferenceId": 1,
+                                            "referenceType": "OWASP",
+                                            "title": "OWASP Top 10 A03:2021 Injection",
+                                            "referenceUrl": "https://owasp.org/Top10/A03_2021-Injection/"
+                                          }
+                                        ]
+                                      }
+                                    }
+                                    """
+                    )
+            )
+    )
+    @io.swagger.v3.oas.annotations.responses.ApiResponse(
+            responseCode = "401",
+            description = "인증 실패",
+            content = @Content(
+                    schema = @Schema(implementation = ApiResponse.class),
+                    examples = @ExampleObject(
+                            name = "unauthorized",
+                            value = """
+                                    {
+                                      "isSuccess": false,
+                                      "code": "COMMON401",
+                                      "message": "인증이 필요합니다."
+                                    }
+                                    """
+                    )
+            )
+    )
+    @io.swagger.v3.oas.annotations.responses.ApiResponse(
+            responseCode = "404",
+            description = "레포지토리 또는 이슈를 찾을 수 없음",
+            content = @Content(
+                    schema = @Schema(implementation = ApiResponse.class),
+                    examples = @ExampleObject(
+                            name = "notFound",
+                            value = """
+                                    {
+                                      "isSuccess": false,
+                                      "code": "COMMON404",
+                                      "message": "요청한 리소스를 찾을 수 없습니다."
+                                    }
+                                    """
+                    )
+            )
+    )
+    ApiResponse<RepositoryIssueDetailResponse> getRepositoryIssueDetail(
+            @Parameter(hidden = true)
+            @AuthenticationPrincipal UserPrincipal userPrincipal,
+
+            @PathVariable Long repositoryId,
+
+            @PathVariable Long analysisResultId
     );
 }

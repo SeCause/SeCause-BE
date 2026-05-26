@@ -1,6 +1,7 @@
 package SeCause.SeCause_be.domain.repository.service;
 
 import SeCause.SeCause_be.domain.analysis.repository.AnalysisResultRepository;
+import SeCause.SeCause_be.domain.repository.dto.RepositoryIssueDetailResponse;
 import SeCause.SeCause_be.domain.repository.dto.RepositoryIssueListResponse;
 import SeCause.SeCause_be.domain.repository.dto.RepositoryIssueSeverity;
 import SeCause.SeCause_be.domain.repository.dto.VulnerableFileListResponse;
@@ -44,6 +45,25 @@ public class RepositoryIssueService {
     public VulnerableFileListResponse getVulnerableFiles(Long repositoryId, Long userId) {
         validateRepositoryOwner(repositoryId, userId);
         return analysisResultRepository.findVulnerableFiles(repositoryId, userId);
+    }
+
+    public RepositoryIssueDetailResponse getRepositoryIssueDetail(
+            Long repositoryId,
+            Long userId,
+            Long analysisResultId
+    ) {
+        validateRepositoryOwner(repositoryId, userId);
+        RepositoryIssueDetailResponse response = analysisResultRepository.findRepositoryIssueDetail(
+                repositoryId,
+                userId,
+                analysisResultId
+        );
+
+        if (response == null) {
+            throw new GeneralException(GlobalErrorCode.NOT_FOUND);
+        }
+
+        return response;
     }
 
     private void validatePageRequest(int page, int size) {

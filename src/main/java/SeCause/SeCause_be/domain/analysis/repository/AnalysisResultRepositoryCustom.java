@@ -1,6 +1,7 @@
 package SeCause.SeCause_be.domain.analysis.repository;
 
 import SeCause.SeCause_be.domain.repository.dto.RepositoryIssueListResponse;
+import SeCause.SeCause_be.domain.repository.dto.RepositoryIssueDetailResponse;
 import SeCause.SeCause_be.domain.repository.dto.VulnerableFileListResponse;
 import SeCause.SeCause_be.domain.vulnerability.entity.Severity;
 import org.springframework.data.domain.Pageable;
@@ -15,4 +16,10 @@ public interface AnalysisResultRepositoryCustom {
     );
 
     VulnerableFileListResponse findVulnerableFiles(Long repositoryId, Long userId);
+
+    RepositoryIssueDetailResponse findRepositoryIssueDetail(
+            Long repositoryId,
+            Long userId,
+            Long analysisResultId
+    );
 }
