@@ -3,6 +3,7 @@ package SeCause.SeCause_be.domain.repository.service;
 import SeCause.SeCause_be.domain.analysis.repository.AnalysisResultRepository;
 import SeCause.SeCause_be.domain.repository.dto.RepositoryIssueListResponse;
 import SeCause.SeCause_be.domain.repository.dto.RepositoryIssueSeverity;
+import SeCause.SeCause_be.domain.repository.dto.VulnerableFileListResponse;
 import SeCause.SeCause_be.domain.repository.repository.RepositoryRepository;
 import SeCause.SeCause_be.domain.vulnerability.entity.Severity;
 import SeCause.SeCause_be.global.apiPayload.code.GlobalErrorCode;
@@ -38,6 +39,11 @@ public class RepositoryIssueService {
                 severityFilter,
                 pageRequest
         );
+    }
+
+    public VulnerableFileListResponse getVulnerableFiles(Long repositoryId, Long userId) {
+        validateRepositoryOwner(repositoryId, userId);
+        return analysisResultRepository.findVulnerableFiles(repositoryId, userId);
     }
 
     private void validatePageRequest(int page, int size) {

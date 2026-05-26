@@ -4,6 +4,9 @@ import SeCause.SeCause_be.domain.analysis.entity.QAnalysis;
 import SeCause.SeCause_be.domain.analysis.entity.QAnalysisResult;
 import SeCause.SeCause_be.domain.repository.dto.RepositoryIssueListResponse;
 import SeCause.SeCause_be.domain.repository.dto.RepositoryIssueSummaryResponse;
+import SeCause.SeCause_be.domain.repository.dto.VulnerableFileListResponse;
+import SeCause.SeCause_be.domain.repository.dto.VulnerableFileSummaryResponse;
+import SeCause.SeCause_be.domain.repository.entity.FileType;
 import SeCause.SeCause_be.domain.repository.entity.QRepository;
 import SeCause.SeCause_be.domain.repository.entity.QRepositoryFile;
 import SeCause.SeCause_be.domain.vulnerability.entity.QCodeVulnerability;
@@ -12,12 +15,15 @@ import SeCause.SeCause_be.domain.vulnerability.entity.Severity;
 import com.querydsl.core.BooleanBuilder;
 import com.querydsl.core.Tuple;
 import com.querydsl.core.types.dsl.BooleanExpression;
+import com.querydsl.core.types.dsl.NumberExpression;
 import com.querydsl.jpa.impl.JPAQuery;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Pageable;
 
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 @RequiredArgsConstructor
 public class AnalysisResultRepositoryImpl implements AnalysisResultRepositoryCustom {
@@ -31,6 +37,12 @@ public class AnalysisResultRepositoryImpl implements AnalysisResultRepositoryCus
     private static final QRepository infraRepository = new QRepository("infraRepository");
     private static final QRepositoryFile codeRepositoryFile = new QRepositoryFile("codeRepositoryFile");
     private static final QRepositoryFile infraRepositoryFile = new QRepositoryFile("infraRepositoryFile");
+    private static final NumberExpression<Long> codeIssueCount = codeVulnerability.count();
+    private static final NumberExpression<Long> infraIssueCount = infraVulnerability.count();
+    private static final NumberExpression<Long> codeCriticalCount =
+            codeVulnerability.severity.when(Severity.CRITICAL).then(1L).otherwise(0L).sum();
+    private static final NumberExpression<Long> infraCriticalCount =
+            infraVulnerability.severity.when(Severity.CRITICAL).then(1L).otherwise(0L).sum();
 
     private final JPAQueryFactory queryFactory;
 
@@ -68,6 +80,22 @@ public class AnalysisResultRepositoryImpl implements AnalysisResultRepositoryCus
                 pageable.getPageNumber() + 1,
                 pageable.getPageSize(),
                 totalElements == null ? 0 : totalElements
+        );
+    }
+
+    @Override
+    public VulnerableFileListResponse findVulnerableFiles(Long repositoryId, Long userId) {
+        Map<Long, VulnerableFileAccumulator> files = new LinkedHashMap<>();
+        fetchCodeVulnerableFiles(repositoryId, userId)
+                .forEach(tuple -> accumulateCodeVulnerableFile(files, tuple));
+        fetchInfraVulnerableFiles(repositoryId, userId)
+                .forEach(tuple -> accumulateInfraVulnerableFile(files, tuple));
+
+        return VulnerableFileListResponse.from(
+                files.values()
+                        .stream()
+                        .map(VulnerableFileAccumulator::toResponse)
+                        .toList()
         );
     }
 
@@ -125,5 +153,133 @@ public class AnalysisResultRepositoryImpl implements AnalysisResultRepositoryCus
 
     private String firstNonNull(String first, String second) {
         return first != null ? first : second;
+    }
+
+    private List<Tuple> fetchCodeVulnerableFiles(Long repositoryId, Long userId) {
+        return queryFactory
+                .select(
+                        codeRepositoryFile.repositoryFileId,
+                        codeRepositoryFile.filePath,
+                        codeRepositoryFile.fileType,
+                        codeRepositoryFile.language,
+                        codeIssueCount,
+                        codeCriticalCount
+                )
+                .from(codeVulnerability)
+                .join(codeVulnerability.analysis, codeAnalysis)
+                .join(codeAnalysis.repository, codeRepository)
+                .join(codeVulnerability.repositoryFile, codeRepositoryFile)
+                .where(codeRepository.repositoryId.eq(repositoryId),
+                        codeRepository.user.userId.eq(userId),
+                        codeRepository.deleted.isFalse())
+                .groupBy(
+                        codeRepositoryFile.repositoryFileId,
+                        codeRepositoryFile.filePath,
+                        codeRepositoryFile.fileType,
+                        codeRepositoryFile.language
+                )
+                .orderBy(codeRepositoryFile.filePath.asc())
+                .fetch();
+    }
+
+    private List<Tuple> fetchInfraVulnerableFiles(Long repositoryId, Long userId) {
+        return queryFactory
+                .select(
+                        infraRepositoryFile.repositoryFileId,
+                        infraRepositoryFile.filePath,
+                        infraRepositoryFile.fileType,
+                        infraRepositoryFile.language,
+                        infraIssueCount,
+                        infraCriticalCount
+                )
+                .from(infraVulnerability)
+                .join(infraVulnerability.analysis, infraAnalysis)
+                .join(infraAnalysis.repository, infraRepository)
+                .join(infraVulnerability.repositoryFile, infraRepositoryFile)
+                .where(infraRepository.repositoryId.eq(repositoryId),
+                        infraRepository.user.userId.eq(userId),
+                        infraRepository.deleted.isFalse())
+                .groupBy(
+                        infraRepositoryFile.repositoryFileId,
+                        infraRepositoryFile.filePath,
+                        infraRepositoryFile.fileType,
+                        infraRepositoryFile.language
+                )
+                .orderBy(infraRepositoryFile.filePath.asc())
+                .fetch();
+    }
+
+    private void accumulateCodeVulnerableFile(Map<Long, VulnerableFileAccumulator> files, Tuple tuple) {
+        Long repositoryFileId = tuple.get(codeRepositoryFile.repositoryFileId);
+        VulnerableFileAccumulator accumulator = files.computeIfAbsent(
+                repositoryFileId,
+                ignored -> VulnerableFileAccumulator.fromCodeTuple(tuple)
+        );
+        accumulator.addCounts(tuple.get(codeIssueCount), tuple.get(codeCriticalCount));
+    }
+
+    private void accumulateInfraVulnerableFile(Map<Long, VulnerableFileAccumulator> files, Tuple tuple) {
+        Long repositoryFileId = tuple.get(infraRepositoryFile.repositoryFileId);
+        VulnerableFileAccumulator accumulator = files.computeIfAbsent(
+                repositoryFileId,
+                ignored -> VulnerableFileAccumulator.fromInfraTuple(tuple)
+        );
+        accumulator.addCounts(tuple.get(infraIssueCount), tuple.get(infraCriticalCount));
+    }
+
+    private static class VulnerableFileAccumulator {
+
+        private final Long repositoryFileId;
+        private final String filePath;
+        private final FileType fileType;
+        private final String language;
+        private long issueCount;
+        private long criticalCount;
+
+        private VulnerableFileAccumulator(
+                Long repositoryFileId,
+                String filePath,
+                FileType fileType,
+                String language
+        ) {
+            this.repositoryFileId = repositoryFileId;
+            this.filePath = filePath;
+            this.fileType = fileType;
+            this.language = language;
+        }
+
+        private static VulnerableFileAccumulator fromCodeTuple(Tuple tuple) {
+            return new VulnerableFileAccumulator(
+                    tuple.get(codeRepositoryFile.repositoryFileId),
+                    tuple.get(codeRepositoryFile.filePath),
+                    tuple.get(codeRepositoryFile.fileType),
+                    tuple.get(codeRepositoryFile.language)
+            );
+        }
+
+        private static VulnerableFileAccumulator fromInfraTuple(Tuple tuple) {
+            return new VulnerableFileAccumulator(
+                    tuple.get(infraRepositoryFile.repositoryFileId),
+                    tuple.get(infraRepositoryFile.filePath),
+                    tuple.get(infraRepositoryFile.fileType),
+                    tuple.get(infraRepositoryFile.language)
+            );
+        }
+
+        private void addCounts(Long issueCount, Long criticalCount) {
+            this.issueCount += issueCount == null ? 0 : issueCount;
+            this.criticalCount += criticalCount == null ? 0 : criticalCount;
+        }
+
+        private VulnerableFileSummaryResponse toResponse() {
+            return new VulnerableFileSummaryResponse(
+                    repositoryFileId,
+                    filePath,
+                    fileType,
+                    language,
+                    issueCount,
+                    criticalCount
+            );
+        }
     }
 }

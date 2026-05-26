@@ -2,6 +2,7 @@ package SeCause.SeCause_be.domain.repository.controller;
 
 import SeCause.SeCause_be.domain.repository.dto.RepositoryIssueListResponse;
 import SeCause.SeCause_be.domain.repository.dto.RepositoryIssueSeverity;
+import SeCause.SeCause_be.domain.repository.dto.VulnerableFileListResponse;
 import SeCause.SeCause_be.global.apiPayload.response.ApiResponse;
 import SeCause.SeCause_be.global.security.UserPrincipal;
 import io.swagger.v3.oas.annotations.Operation;
@@ -149,5 +150,97 @@ public interface RepositoryIssueApi {
             @RequestParam(defaultValue = "1") int page,
 
             @RequestParam(defaultValue = "20") int size
+    );
+
+    @Operation(
+            summary = "취약 파일 목록 조회",
+            description = "레포지토리 분석 결과에서 취약점이 발견된 파일 목록과 파일별 이슈 수, CRITICAL 이슈 수를 조회합니다.",
+            security = @SecurityRequirement(name = "Bearer Authentication"),
+            parameters = {
+                    @Parameter(
+                            name = "repositoryId",
+                            description = "레포지토리 ID",
+                            required = true,
+                            in = ParameterIn.PATH,
+                            example = "1"
+                    )
+            }
+    )
+    @io.swagger.v3.oas.annotations.responses.ApiResponse(
+            responseCode = "200",
+            description = "취약 파일 목록 조회 성공",
+            content = @Content(
+                    schema = @Schema(implementation = ApiResponse.class),
+                    examples = @ExampleObject(
+                            name = "success",
+                            value = """
+                                    {
+                                      "isSuccess": true,
+                                      "code": "COMMON2000",
+                                      "message": "취약 파일 목록 조회가 완료됐습니다.",
+                                      "result": {
+                                        "files": [
+                                          {
+                                            "repositoryFileId": 5,
+                                            "filePath": "src/utils/database.ts",
+                                            "fileType": "SOURCE",
+                                            "language": "TypeScript",
+                                            "issueCount": 8,
+                                            "criticalCount": 2
+                                          },
+                                          {
+                                            "repositoryFileId": 6,
+                                            "filePath": "Dockerfile",
+                                            "fileType": "INFRA",
+                                            "language": null,
+                                            "issueCount": 3,
+                                            "criticalCount": 0
+                                          }
+                                        ]
+                                      }
+                                    }
+                                    """
+                    )
+            )
+    )
+    @io.swagger.v3.oas.annotations.responses.ApiResponse(
+            responseCode = "401",
+            description = "인증 실패",
+            content = @Content(
+                    schema = @Schema(implementation = ApiResponse.class),
+                    examples = @ExampleObject(
+                            name = "unauthorized",
+                            value = """
+                                    {
+                                      "isSuccess": false,
+                                      "code": "COMMON401",
+                                      "message": "인증이 필요합니다."
+                                    }
+                                    """
+                    )
+            )
+    )
+    @io.swagger.v3.oas.annotations.responses.ApiResponse(
+            responseCode = "404",
+            description = "레포지토리를 찾을 수 없음",
+            content = @Content(
+                    schema = @Schema(implementation = ApiResponse.class),
+                    examples = @ExampleObject(
+                            name = "notFound",
+                            value = """
+                                    {
+                                      "isSuccess": false,
+                                      "code": "COMMON404",
+                                      "message": "요청한 리소스를 찾을 수 없습니다."
+                                    }
+                                    """
+                    )
+            )
+    )
+    ApiResponse<VulnerableFileListResponse> getVulnerableFiles(
+            @Parameter(hidden = true)
+            @AuthenticationPrincipal UserPrincipal userPrincipal,
+
+            @PathVariable Long repositoryId
     );
 }

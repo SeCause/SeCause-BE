@@ -2,6 +2,7 @@ package SeCause.SeCause_be.domain.repository.controller;
 
 import SeCause.SeCause_be.domain.repository.dto.RepositoryIssueListResponse;
 import SeCause.SeCause_be.domain.repository.dto.RepositoryIssueSeverity;
+import SeCause.SeCause_be.domain.repository.dto.VulnerableFileListResponse;
 import SeCause.SeCause_be.domain.repository.service.RepositoryIssueService;
 import SeCause.SeCause_be.global.apiPayload.response.ApiResponse;
 import SeCause.SeCause_be.global.security.UserPrincipal;
@@ -38,5 +39,19 @@ public class RepositoryIssueController implements RepositoryIssueApi {
         );
 
         return ApiResponse.onSuccess("레포지토리 이슈 목록 조회가 완료됐습니다.", response);
+    }
+
+    @GetMapping("/{repositoryId}/analysis/files")
+    @Override
+    public ApiResponse<VulnerableFileListResponse> getVulnerableFiles(
+            @AuthenticationPrincipal UserPrincipal userPrincipal,
+            @PathVariable Long repositoryId
+    ) {
+        VulnerableFileListResponse response = repositoryIssueService.getVulnerableFiles(
+                repositoryId,
+                userPrincipal.userId()
+        );
+
+        return ApiResponse.onSuccess("취약 파일 목록 조회가 완료됐습니다.", response);
     }
 }
