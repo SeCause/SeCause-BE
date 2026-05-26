@@ -4,6 +4,7 @@ import SeCause.SeCause_be.domain.auth.dto.GithubLoginRequest;
 import SeCause.SeCause_be.domain.auth.dto.GithubLoginResponse;
 import SeCause.SeCause_be.domain.auth.dto.GithubLoginResult;
 import SeCause.SeCause_be.domain.auth.service.GithubAuthService;
+import SeCause.SeCause_be.global.apiPayload.response.ApiResponse;
 import SeCause.SeCause_be.global.security.jwt.JwtCookieProvider;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -24,7 +25,7 @@ public class AuthController {
     private final JwtCookieProvider jwtCookieProvider;
 
     @PostMapping("/github/login")
-    public ResponseEntity<GithubLoginResponse> loginWithGithub(
+    public ResponseEntity<ApiResponse<GithubLoginResponse>> loginWithGithub(
             @Valid @RequestBody GithubLoginRequest request
     ) {
         GithubLoginResult result = githubAuthService.login(request);
@@ -32,6 +33,6 @@ public class AuthController {
 
         return ResponseEntity.ok()
                 .header(HttpHeaders.SET_COOKIE, accessTokenCookie.toString())
-                .body(result.response());
+                .body(ApiResponse.onSuccess("깃허브 로그인이 완료됐습니다.", result.response()));
     }
 }
