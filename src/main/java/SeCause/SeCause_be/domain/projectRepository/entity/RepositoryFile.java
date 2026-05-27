@@ -1,6 +1,6 @@
 package SeCause.SeCause_be.domain.projectRepository.entity;
 
-import SeCause.SeCause_be.global.entity.BaseCreatedEntity;
+import SeCause.SeCause_be.global.entity.BaseEntity;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -22,7 +22,7 @@ import org.hibernate.type.SqlTypes;
 @Entity
 @Table(name = "repository_files")
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-public class RepositoryFile extends BaseCreatedEntity {
+public class RepositoryFile extends BaseEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

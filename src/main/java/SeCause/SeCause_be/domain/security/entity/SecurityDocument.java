@@ -1,6 +1,6 @@
 package SeCause.SeCause_be.domain.security.entity;
 
-import SeCause.SeCause_be.global.entity.BaseCreatedEntity;
+import SeCause.SeCause_be.global.entity.BaseEntity;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -19,7 +19,7 @@ import org.hibernate.type.SqlTypes;
 @Entity
 @Table(name = "security_documents")
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-public class SecurityDocument extends BaseCreatedEntity {
+public class SecurityDocument extends BaseEntity {
 
     private static final int EMBEDDING_DIMENSION = 1536;
 

@@ -1,7 +1,7 @@
 package SeCause.SeCause_be.domain.analysis.entity;
 
 import SeCause.SeCause_be.domain.projectRepository.entity.ProjectRepository;
-import SeCause.SeCause_be.global.entity.BaseCreatedEntity;
+import SeCause.SeCause_be.global.entity.BaseEntity;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -25,7 +25,7 @@ import java.time.LocalDateTime;
 @Entity
 @Table(name = "analyses")
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-public class Analysis extends BaseCreatedEntity {
+public class Analysis extends BaseEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
