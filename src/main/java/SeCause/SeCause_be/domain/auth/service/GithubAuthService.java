@@ -33,9 +33,13 @@ public class GithubAuthService {
     public GithubLoginResult login(GithubLoginRequest request) {
         GithubAccessTokenResponse tokenResponse = requestAccessToken(request.code());
         GithubUserResponse userResponse = requestUserInfo(tokenResponse.accessToken());
+        String name = userResponse.name() != null && !userResponse.name().isBlank()
+                ? userResponse.name()
+                : userResponse.login();
         User user = userService.saveOrUpdateGithubUser(
+                userResponse.id(),
                 userResponse.email(),
-                userResponse.name(),
+                name,
                 tokenResponse.accessToken()
         );
         String accessToken = jwtTokenProvider.createAccessToken(user);
