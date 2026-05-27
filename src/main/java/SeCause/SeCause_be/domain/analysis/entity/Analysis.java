@@ -1,6 +1,6 @@
 package SeCause.SeCause_be.domain.analysis.entity;
 
-import SeCause.SeCause_be.domain.repository.entity.Repository;
+import SeCause.SeCause_be.domain.projectRepository.entity.ProjectRepository;
 import SeCause.SeCause_be.global.entity.BaseCreatedEntity;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -34,7 +34,7 @@ public class Analysis extends BaseCreatedEntity {
 
     @OneToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "repository_id", nullable = false, unique = true)
-    private Repository repository;
+    private ProjectRepository repository;
 
     @Enumerated(EnumType.STRING)
     @JdbcTypeCode(SqlTypes.NAMED_ENUM)
@@ -50,11 +50,11 @@ public class Analysis extends BaseCreatedEntity {
     @Column(name = "completed_at")
     private LocalDateTime completedAt;
 
-    private Analysis(Repository repository) {
+    private Analysis(ProjectRepository repository) {
         this.repository = repository;
     }
 
-    public static Analysis create(Repository repository) {
+    public static Analysis create(ProjectRepository repository) {
         return new Analysis(repository);
     }
 

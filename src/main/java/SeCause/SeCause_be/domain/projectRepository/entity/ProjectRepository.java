@@ -1,4 +1,4 @@
-package SeCause.SeCause_be.domain.repository.entity;
+package SeCause.SeCause_be.domain.projectRepository.entity;
 
 import SeCause.SeCause_be.domain.user.entity.User;
 import SeCause.SeCause_be.global.entity.BaseEntity;
@@ -19,7 +19,7 @@ import lombok.NoArgsConstructor;
 @Entity
 @Table(name = "repositories")
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-public class Repository extends BaseEntity {
+public class ProjectRepository extends BaseEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -48,7 +48,7 @@ public class Repository extends BaseEntity {
     @Column(name = "total_files", nullable = false)
     private int totalFiles = 0;
 
-    private Repository(User user, String title, String description, String githubLink, String branch) {
+    private ProjectRepository(User user, String title, String description, String githubLink, String branch) {
         this.user = user;
         this.title = title;
         this.description = description;
@@ -56,8 +56,14 @@ public class Repository extends BaseEntity {
         this.branch = branch;
     }
 
-    public static Repository create(User user, String title, String description, String githubLink, String branch) {
-        return new Repository(user, title, description, githubLink, branch);
+    public static ProjectRepository create(
+            User user,
+            String title,
+            String description,
+            String githubLink,
+            String branch
+    ) {
+        return new ProjectRepository(user, title, description, githubLink, branch);
     }
 
     public void updateInfo(String title, String description, String githubLink, String branch) {

@@ -1,4 +1,4 @@
-package SeCause.SeCause_be.domain.repository.entity;
+package SeCause.SeCause_be.domain.projectRepository.entity;
 
 import SeCause.SeCause_be.global.entity.BaseCreatedEntity;
 import jakarta.persistence.Column;
@@ -31,7 +31,7 @@ public class RepositoryFile extends BaseCreatedEntity {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "repository_id", nullable = false)
-    private Repository repository;
+    private ProjectRepository repository;
 
     @Column(name = "file_path", nullable = false, length = 1000)
     private String filePath;
@@ -47,7 +47,13 @@ public class RepositoryFile extends BaseCreatedEntity {
     @Column(name = "file_size_bytes", nullable = false)
     private long fileSizeBytes = 0L;
 
-    private RepositoryFile(Repository repository, String filePath, FileType fileType, String language, long fileSizeBytes) {
+    private RepositoryFile(
+            ProjectRepository repository,
+            String filePath,
+            FileType fileType,
+            String language,
+            long fileSizeBytes
+    ) {
         this.repository = repository;
         this.filePath = filePath;
         this.fileType = fileType;
@@ -56,7 +62,7 @@ public class RepositoryFile extends BaseCreatedEntity {
     }
 
     public static RepositoryFile create(
-            Repository repository,
+            ProjectRepository repository,
             String filePath,
             FileType fileType,
             String language,

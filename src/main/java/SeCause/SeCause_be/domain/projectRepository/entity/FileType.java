@@ -1,4 +1,4 @@
-package SeCause.SeCause_be.domain.repository.entity;
+package SeCause.SeCause_be.domain.projectRepository.entity;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;

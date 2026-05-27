@@ -21,6 +21,8 @@ import org.hibernate.type.SqlTypes;
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class SecurityDocument extends BaseCreatedEntity {
 
+    private static final int EMBEDDING_DIMENSION = 1536;
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "security_document_id")
@@ -49,6 +51,7 @@ public class SecurityDocument extends BaseCreatedEntity {
         this.title = title;
         this.url = url;
         this.content = content;
+        validateEmbedding(embedding);
         this.embedding = embedding;
     }
 
@@ -60,5 +63,11 @@ public class SecurityDocument extends BaseCreatedEntity {
             float[] embedding
     ) {
         return new SecurityDocument(sourceType, title, url, content, embedding);
+    }
+
+    private void validateEmbedding(float[] embedding) {
+        if (embedding != null && embedding.length != EMBEDDING_DIMENSION) {
+            throw new IllegalArgumentException("embedding dimension must be " + EMBEDDING_DIMENSION);
+        }
     }
 }
