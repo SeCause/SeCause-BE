@@ -2,6 +2,7 @@ package SeCause.SeCause_be.domain.analysis.entity;
 
 import SeCause.SeCause_be.domain.vulnerability.entity.CodeVulnerability;
 import SeCause.SeCause_be.domain.vulnerability.entity.InfraVulnerability;
+import SeCause.SeCause_be.domain.vulnerability.entity.Vulnerability;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
@@ -27,12 +28,8 @@ public class AnalysisResult {
     private Long analysisResultId;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "code_vulnerability_id")
-    private CodeVulnerability codeVulnerability;
-
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "infra_vulnerability_id")
-    private InfraVulnerability infraVulnerability;
+    @JoinColumn(name = "vulnerability_id", nullable = false)
+    private Vulnerability vulnerability;
 
     @Column(name = "description", nullable = false, columnDefinition = "TEXT")
     private String description;
@@ -50,16 +47,14 @@ public class AnalysisResult {
     private String fixSummary;
 
     private AnalysisResult(
-            CodeVulnerability codeVulnerability,
-            InfraVulnerability infraVulnerability,
+            Vulnerability vulnerability,
             String description,
             String summary,
             String attackScenario,
             String fixCode,
             String fixSummary
     ) {
-        this.codeVulnerability = codeVulnerability;
-        this.infraVulnerability = infraVulnerability;
+        this.vulnerability = vulnerability;
         this.description = description;
         this.summary = summary;
         this.attackScenario = attackScenario;
@@ -75,7 +70,7 @@ public class AnalysisResult {
             String fixCode,
             String fixSummary
     ) {
-        return new AnalysisResult(codeVulnerability, null, description, summary, attackScenario, fixCode, fixSummary);
+        return new AnalysisResult(codeVulnerability, description, summary, attackScenario, fixCode, fixSummary);
     }
 
     public static AnalysisResult createForInfraVulnerability(
@@ -86,6 +81,6 @@ public class AnalysisResult {
             String fixCode,
             String fixSummary
     ) {
-        return new AnalysisResult(null, infraVulnerability, description, summary, attackScenario, fixCode, fixSummary);
+        return new AnalysisResult(infraVulnerability, description, summary, attackScenario, fixCode, fixSummary);
     }
 }
