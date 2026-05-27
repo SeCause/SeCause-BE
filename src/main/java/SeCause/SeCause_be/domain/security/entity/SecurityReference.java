@@ -2,6 +2,7 @@ package SeCause.SeCause_be.domain.security.entity;
 
 import SeCause.SeCause_be.domain.vulnerability.entity.CodeVulnerability;
 import SeCause.SeCause_be.domain.vulnerability.entity.InfraVulnerability;
+import SeCause.SeCause_be.domain.vulnerability.entity.Vulnerability;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -31,12 +32,8 @@ public class SecurityReference {
     private Long securityReferenceId;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "code_vulnerability_id")
-    private CodeVulnerability codeVulnerability;
-
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "infra_vulnerability_id")
-    private InfraVulnerability infraVulnerability;
+    @JoinColumn(name = "vulnerability_id", nullable = false)
+    private Vulnerability vulnerability;
 
     @Enumerated(EnumType.STRING)
     @JdbcTypeCode(SqlTypes.NAMED_ENUM)
@@ -50,14 +47,12 @@ public class SecurityReference {
     private String referenceUrl;
 
     private SecurityReference(
-            CodeVulnerability codeVulnerability,
-            InfraVulnerability infraVulnerability,
+            Vulnerability vulnerability,
             ReferenceType referenceType,
             String title,
             String referenceUrl
     ) {
-        this.codeVulnerability = codeVulnerability;
-        this.infraVulnerability = infraVulnerability;
+        this.vulnerability = vulnerability;
         this.referenceType = referenceType;
         this.title = title;
         this.referenceUrl = referenceUrl;
@@ -69,7 +64,7 @@ public class SecurityReference {
             String title,
             String referenceUrl
     ) {
-        return new SecurityReference(codeVulnerability, null, referenceType, title, referenceUrl);
+        return new SecurityReference(codeVulnerability, referenceType, title, referenceUrl);
     }
 
     public static SecurityReference createForInfraVulnerability(
@@ -78,6 +73,6 @@ public class SecurityReference {
             String title,
             String referenceUrl
     ) {
-        return new SecurityReference(null, infraVulnerability, referenceType, title, referenceUrl);
+        return new SecurityReference(infraVulnerability, referenceType, title, referenceUrl);
     }
 }
