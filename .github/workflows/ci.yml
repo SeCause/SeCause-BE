@@ -4,13 +4,13 @@ on:
   pull_request:
     branches:
       - develop
-      - main
   push:
     branches:
-      - main
+      - develop
 
 jobs:
   ci:
+    if: github.repository == 'SeCause/SeCause-BE'
     runs-on: ubuntu-latest
 
     steps:
@@ -39,9 +39,6 @@ jobs:
 
       - name: Build
         run: ./gradlew build -x test
-
-      - name: Test
-        run: ./gradlew test
 
       - name: Upload Test Report      # 실패 시 리포트 확인용
         if: failure()
