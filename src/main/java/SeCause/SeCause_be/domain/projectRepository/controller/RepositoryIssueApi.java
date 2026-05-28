@@ -1,9 +1,9 @@
-package SeCause.SeCause_be.domain.repository.controller;
+package SeCause.SeCause_be.domain.projectRepository.controller;
 
-import SeCause.SeCause_be.domain.repository.dto.RepositoryIssueListResponse;
-import SeCause.SeCause_be.domain.repository.dto.RepositoryIssueDetailResponse;
-import SeCause.SeCause_be.domain.repository.dto.RepositoryIssueSeverity;
-import SeCause.SeCause_be.domain.repository.dto.VulnerableFileListResponse;
+import SeCause.SeCause_be.domain.projectRepository.dto.RepositoryIssueListResponse;
+import SeCause.SeCause_be.domain.projectRepository.dto.RepositoryIssueDetailResponse;
+import SeCause.SeCause_be.domain.projectRepository.dto.RepositoryIssueSeverity;
+import SeCause.SeCause_be.domain.projectRepository.dto.VulnerableFileListResponse;
 import SeCause.SeCause_be.global.apiPayload.response.ApiResponse;
 import SeCause.SeCause_be.global.security.UserPrincipal;
 import io.swagger.v3.oas.annotations.Operation;

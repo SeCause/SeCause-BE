@@ -1,4 +1,4 @@
-package SeCause.SeCause_be.domain.repository.dto;
+package SeCause.SeCause_be.domain.projectRepository.dto;
 
 import SeCause.SeCause_be.domain.vulnerability.entity.Severity;
 import lombok.AllArgsConstructor;

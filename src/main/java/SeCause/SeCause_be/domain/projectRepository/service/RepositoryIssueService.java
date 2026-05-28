@@ -1,11 +1,11 @@
-package SeCause.SeCause_be.domain.repository.service;
+package SeCause.SeCause_be.domain.projectRepository.service;
 
 import SeCause.SeCause_be.domain.analysis.repository.AnalysisResultRepository;
-import SeCause.SeCause_be.domain.repository.dto.RepositoryIssueDetailResponse;
-import SeCause.SeCause_be.domain.repository.dto.RepositoryIssueListResponse;
-import SeCause.SeCause_be.domain.repository.dto.RepositoryIssueSeverity;
-import SeCause.SeCause_be.domain.repository.dto.VulnerableFileListResponse;
-import SeCause.SeCause_be.domain.repository.repository.RepositoryRepository;
+import SeCause.SeCause_be.domain.projectRepository.dto.RepositoryIssueDetailResponse;
+import SeCause.SeCause_be.domain.projectRepository.dto.RepositoryIssueListResponse;
+import SeCause.SeCause_be.domain.projectRepository.dto.RepositoryIssueSeverity;
+import SeCause.SeCause_be.domain.projectRepository.dto.VulnerableFileListResponse;
+import SeCause.SeCause_be.domain.projectRepository.repository.ProjectRepositoryRepository;
 import SeCause.SeCause_be.domain.vulnerability.entity.Severity;
 import SeCause.SeCause_be.global.apiPayload.code.GlobalErrorCode;
 import SeCause.SeCause_be.global.apiPayload.exception.GeneralException;
@@ -19,7 +19,7 @@ import org.springframework.transaction.annotation.Transactional;
 @Transactional(readOnly = true)
 public class RepositoryIssueService {
 
-    private final RepositoryRepository repositoryRepository;
+    private final ProjectRepositoryRepository projectRepositoryRepository;
     private final AnalysisResultRepository analysisResultRepository;
 
     public RepositoryIssueListResponse getRepositoryIssues(
@@ -73,7 +73,7 @@ public class RepositoryIssueService {
     }
 
     private void validateRepositoryOwner(Long repositoryId, Long userId) {
-        boolean exists = repositoryRepository.existsByRepositoryIdAndUserUserIdAndDeletedFalse(repositoryId, userId);
+        boolean exists = projectRepositoryRepository.existsByRepositoryIdAndUserUserIdAndDeletedFalse(repositoryId, userId);
         if (!exists) {
             throw new GeneralException(GlobalErrorCode.NOT_FOUND);
         }

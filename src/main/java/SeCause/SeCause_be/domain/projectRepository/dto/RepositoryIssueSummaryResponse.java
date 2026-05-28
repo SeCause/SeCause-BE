@@ -1,4 +1,4 @@
-package SeCause.SeCause_be.domain.repository.dto;
+package SeCause.SeCause_be.domain.projectRepository.dto;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 

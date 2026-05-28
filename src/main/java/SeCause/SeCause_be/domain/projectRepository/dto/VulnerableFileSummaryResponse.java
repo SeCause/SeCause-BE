@@ -1,6 +1,6 @@
-package SeCause.SeCause_be.domain.repository.dto;
+package SeCause.SeCause_be.domain.projectRepository.dto;
 
-import SeCause.SeCause_be.domain.repository.entity.FileType;
+import SeCause.SeCause_be.domain.projectRepository.entity.FileType;
 import io.swagger.v3.oas.annotations.media.Schema;
 
 public record VulnerableFileSummaryResponse(

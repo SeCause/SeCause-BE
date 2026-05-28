@@ -1,4 +1,4 @@
-package SeCause.SeCause_be.domain.repository.dto;
+package SeCause.SeCause_be.domain.projectRepository.dto;
 
 import SeCause.SeCause_be.domain.security.entity.ReferenceType;
 import io.swagger.v3.oas.annotations.media.Schema;
