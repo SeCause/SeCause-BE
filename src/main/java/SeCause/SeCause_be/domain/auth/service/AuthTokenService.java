@@ -29,6 +29,16 @@ public class AuthTokenService {
         return new TokenReissueResult(newAccessToken, newRefreshToken);
     }
 
+    @Transactional
+    public void logout(String refreshToken) {
+        try {
+            User user = getUserByRefreshToken(refreshToken);
+            user.clearRefreshToken();
+        } catch (GeneralException ignored) {
+            // Logout still clears client cookies even when the refresh token is missing or already invalid.
+        }
+    }
+
     private User getUserByRefreshToken(String refreshToken) {
         if (refreshToken == null || refreshToken.isBlank()) {
             throw new GeneralException(GlobalErrorCode.INVALID_REFRESH_TOKEN);

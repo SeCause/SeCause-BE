@@ -55,4 +55,18 @@ public class AuthController {
                 .header(HttpHeaders.SET_COOKIE, refreshTokenCookie.toString())
                 .body(ApiResponse.onSuccess("토큰 재발급이 완료됐습니다."));
     }
+
+    @PostMapping("/logout")
+    public ResponseEntity<ApiResponse<Void>> logout(
+            @CookieValue(name = "refresh_token", required = false) String refreshToken
+    ) {
+        authTokenService.logout(refreshToken);
+        ResponseCookie accessTokenCookie = jwtCookieProvider.deleteAccessTokenCookie();
+        ResponseCookie refreshTokenCookie = jwtCookieProvider.deleteRefreshTokenCookie();
+
+        return ResponseEntity.ok()
+                .header(HttpHeaders.SET_COOKIE, accessTokenCookie.toString())
+                .header(HttpHeaders.SET_COOKIE, refreshTokenCookie.toString())
+                .body(ApiResponse.onSuccess("로그아웃이 완료됐습니다."));
+    }
 }
