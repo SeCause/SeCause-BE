@@ -34,21 +34,26 @@ public class User extends BaseEntity {
     @Column(name = "github_token", nullable = false, length = 512)
     private String githubToken;
 
-    private User(Long githubId, String email, String name, String githubToken) {
+    @Column(name = "avatar_url", length = 1024)
+    private String avatarUrl;
+
+    private User(Long githubId, String email, String name, String githubToken, String avatarUrl) {
         this.githubId = githubId;
         this.email = email;
         this.name = name;
         this.githubToken = githubToken;
+        this.avatarUrl = avatarUrl;
     }
 
-    public static User createGithubUser(Long githubId, String email, String name, String githubToken) {
-        return new User(githubId, email, name, githubToken);
+    public static User createGithubUser(Long githubId, String email, String name, String githubToken, String avatarUrl) {
+        return new User(githubId, email, name, githubToken, avatarUrl);
     }
 
-    public void updateGithubProfile(Long githubId, String email, String name, String githubToken) {
+    public void updateGithubProfile(Long githubId, String email, String name, String githubToken, String avatarUrl) {
         this.githubId = githubId;
         this.email = email;
         this.name = name;
         this.githubToken = githubToken;
+        this.avatarUrl = avatarUrl;
     }
 }
