@@ -40,7 +40,8 @@ public class GithubAuthService {
                 userResponse.id(),
                 userResponse.email(),
                 name,
-                tokenResponse.accessToken()
+                tokenResponse.accessToken(),
+                userResponse.avatarUrl()
         );
         String accessToken = jwtTokenProvider.createAccessToken(user);
 

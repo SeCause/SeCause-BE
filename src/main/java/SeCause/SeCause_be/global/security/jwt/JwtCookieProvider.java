@@ -17,9 +17,9 @@ public class JwtCookieProvider {
     public ResponseCookie createAccessTokenCookie(String accessToken) {
         return ResponseCookie.from(ACCESS_TOKEN_COOKIE_NAME, accessToken)
                 .httpOnly(true)
-                .secure(false)
+                .secure(true)
                 .path("/")
-                .sameSite("Lax")
+                .sameSite("None")
                 .maxAge(Duration.ofMillis(jwtProperties.accessTokenExpiration()))
                 .build();
     }
