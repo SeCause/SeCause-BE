@@ -23,6 +23,11 @@ public class UserService {
                 .orElseGet(() -> userRepository.save(User.createGithubUser(githubId, email, name, githubToken, avatarUrl)));
     }
 
+    @Transactional
+    public void updateRefreshToken(User user, String refreshToken) {
+        user.updateRefreshToken(refreshToken);
+    }
+
     private java.util.Optional<User> findExistingUserByEmail(String email) {
         if (email == null || email.isBlank()) {
             return java.util.Optional.empty();

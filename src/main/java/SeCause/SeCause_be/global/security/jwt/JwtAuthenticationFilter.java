@@ -46,11 +46,11 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private void authenticate(String accessToken) {
         try {
-            if (!jwtTokenProvider.isValidToken(accessToken)) {
+            if (!jwtTokenProvider.isValidAccessToken(accessToken)) {
                 return;
             }
 
-            Long userId = jwtTokenProvider.getUserId(accessToken);
+            Long userId = jwtTokenProvider.getAccessTokenUserId(accessToken);
             userRepository.findById(userId).ifPresent(this::setAuthentication);
         } catch (JwtException | IllegalArgumentException ignored) {
             SecurityContextHolder.clearContext();
