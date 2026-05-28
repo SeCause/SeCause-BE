@@ -99,8 +99,8 @@ public interface RepositoryIssueApi {
                             value = """
                                     {
                                       "isSuccess": false,
-                                      "code": "COMMON400",
-                                      "message": "잘못된 요청입니다."
+                                      "code": "PROJECT_REPOSITORY400",
+                                      "message": "페이지 요청 값이 올바르지 않습니다."
                                     }
                                     """
                     )
@@ -133,8 +133,8 @@ public interface RepositoryIssueApi {
                             value = """
                                     {
                                       "isSuccess": false,
-                                      "code": "COMMON404",
-                                      "message": "요청한 리소스를 찾을 수 없습니다."
+                                      "code": "PROJECT_REPOSITORY404",
+                                      "message": "요청한 레포지토리를 찾을 수 없습니다."
                                     }
                                     """
                     )
@@ -231,8 +231,8 @@ public interface RepositoryIssueApi {
                             value = """
                                     {
                                       "isSuccess": false,
-                                      "code": "COMMON404",
-                                      "message": "요청한 리소스를 찾을 수 없습니다."
+                                      "code": "PROJECT_REPOSITORY404",
+                                      "message": "요청한 레포지토리를 찾을 수 없습니다."
                                     }
                                     """
                     )
@@ -327,16 +327,28 @@ public interface RepositoryIssueApi {
             description = "레포지토리 또는 이슈를 찾을 수 없음",
             content = @Content(
                     schema = @Schema(implementation = ApiResponse.class),
-                    examples = @ExampleObject(
-                            name = "notFound",
-                            value = """
-                                    {
-                                      "isSuccess": false,
-                                      "code": "COMMON404",
-                                      "message": "요청한 리소스를 찾을 수 없습니다."
-                                    }
-                                    """
-                    )
+                    examples = {
+                            @ExampleObject(
+                                    name = "repositoryNotFound",
+                                    value = """
+                                            {
+                                              "isSuccess": false,
+                                              "code": "PROJECT_REPOSITORY404",
+                                              "message": "요청한 레포지토리를 찾을 수 없습니다."
+                                            }
+                                            """
+                            ),
+                            @ExampleObject(
+                                    name = "analysisResultNotFound",
+                                    value = """
+                                            {
+                                              "isSuccess": false,
+                                              "code": "ANALYSIS_RESULT404",
+                                              "message": "요청한 분석 결과를 찾을 수 없습니다."
+                                            }
+                                            """
+                            )
+                    }
             )
     )
     ApiResponse<RepositoryIssueDetailResponse> getRepositoryIssueDetail(
