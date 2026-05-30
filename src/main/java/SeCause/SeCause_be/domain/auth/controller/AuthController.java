@@ -60,9 +60,11 @@ public class AuthController {
     public ResponseEntity<ApiResponse<Void>> logout(
             @CookieValue(name = "refresh_token", required = false) String refreshToken
     ) {
-        authTokenService.logout(refreshToken);
         ResponseCookie accessTokenCookie = jwtCookieProvider.deleteAccessTokenCookie();
         ResponseCookie refreshTokenCookie = jwtCookieProvider.deleteRefreshTokenCookie();
+        if (refreshToken != null && !refreshToken.isBlank()) {
+            authTokenService.logout(refreshToken);
+        }
 
         return ResponseEntity.ok()
                 .header(HttpHeaders.SET_COOKIE, accessTokenCookie.toString())
