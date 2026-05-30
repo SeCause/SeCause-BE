@@ -15,6 +15,10 @@ import java.util.Date;
 @RequiredArgsConstructor
 public class JwtTokenProvider {
 
+    private static final String TOKEN_TYPE_CLAIM = "type";
+    private static final String ACCESS_TOKEN_TYPE = "ACCESS";
+    private static final String REFRESH_TOKEN_TYPE = "REFRESH";
+
     private final JwtProperties jwtProperties;
 
     public String createAccessToken(User user) {
@@ -25,30 +29,75 @@ public class JwtTokenProvider {
                 .subject(String.valueOf(user.getUserId()))
                 .claim("email", user.getEmail())
                 .claim("name", user.getName())
+                .claim(TOKEN_TYPE_CLAIM, ACCESS_TOKEN_TYPE)
                 .issuedAt(now)
                 .expiration(expiration)
-                .signWith(getSigningKey())
+                .signWith(getAccessSigningKey())
                 .compact();
     }
 
-    public Long getUserId(String token) {
-        return Long.valueOf(getClaims(token).getSubject());
+    public String createRefreshToken(User user) {
+        Date now = new Date();
+        Date expiration = new Date(now.getTime() + jwtProperties.refreshTokenExpiration());
+
+        return Jwts.builder()
+                .subject(String.valueOf(user.getUserId()))
+                .claim(TOKEN_TYPE_CLAIM, REFRESH_TOKEN_TYPE)
+                .issuedAt(now)
+                .expiration(expiration)
+                .signWith(getRefreshSigningKey())
+                .compact();
     }
 
-    public boolean isValidToken(String token) {
-        getClaims(token);
+    public Long getAccessTokenUserId(String token) {
+        return Long.valueOf(getAccessTokenClaims(token).getSubject());
+    }
+
+    public Long getRefreshTokenUserId(String token) {
+        return Long.valueOf(getRefreshTokenClaims(token).getSubject());
+    }
+
+    public boolean isValidAccessToken(String token) {
+        getAccessTokenClaims(token);
         return true;
     }
 
-    private Claims getClaims(String token) {
+    public boolean isValidRefreshToken(String token) {
+        getRefreshTokenClaims(token);
+        return true;
+    }
+
+    private Claims getAccessTokenClaims(String token) {
+        Claims claims = getClaims(token, getAccessSigningKey());
+        validateTokenType(claims, ACCESS_TOKEN_TYPE);
+        return claims;
+    }
+
+    private Claims getRefreshTokenClaims(String token) {
+        Claims claims = getClaims(token, getRefreshSigningKey());
+        validateTokenType(claims, REFRESH_TOKEN_TYPE);
+        return claims;
+    }
+
+    private Claims getClaims(String token, SecretKey signingKey) {
         return Jwts.parser()
-                .verifyWith(getSigningKey())
+                .verifyWith(signingKey)
                 .build()
                 .parseSignedClaims(token)
                 .getPayload();
     }
 
-    private SecretKey getSigningKey() {
+    private void validateTokenType(Claims claims, String expectedTokenType) {
+        if (!expectedTokenType.equals(claims.get(TOKEN_TYPE_CLAIM, String.class))) {
+            throw new IllegalArgumentException("Invalid token type");
+        }
+    }
+
+    private SecretKey getAccessSigningKey() {
         return Keys.hmacShaKeyFor(jwtProperties.secret().getBytes(StandardCharsets.UTF_8));
+    }
+
+    private SecretKey getRefreshSigningKey() {
+        return Keys.hmacShaKeyFor(jwtProperties.refreshSecret().getBytes(StandardCharsets.UTF_8));
     }
 }

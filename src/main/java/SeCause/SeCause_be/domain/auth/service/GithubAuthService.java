@@ -40,9 +40,12 @@ public class GithubAuthService {
                 userResponse.id(),
                 userResponse.email(),
                 name,
-                tokenResponse.accessToken()
+                tokenResponse.accessToken(),
+                userResponse.avatarUrl()
         );
         String accessToken = jwtTokenProvider.createAccessToken(user);
+        String refreshToken = jwtTokenProvider.createRefreshToken(user);
+        userService.updateRefreshToken(user, refreshToken);
 
         GithubLoginResponse response = new GithubLoginResponse(
                 user.getUserId(),
@@ -53,7 +56,7 @@ public class GithubAuthService {
                 userResponse.avatarUrl()
         );
 
-        return new GithubLoginResult(response, accessToken);
+        return new GithubLoginResult(response, accessToken, refreshToken);
     }
 
     private GithubAccessTokenResponse requestAccessToken(String code) {
