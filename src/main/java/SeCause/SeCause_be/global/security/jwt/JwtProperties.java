@@ -6,6 +6,7 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 public record JwtProperties(
         String secret,
         String refreshSecret,
+        String refreshTokenHashSecret,
         long accessTokenExpiration,
         long refreshTokenExpiration
 ) {
@@ -15,6 +16,9 @@ public record JwtProperties(
     public JwtProperties {
         if (refreshSecret == null || refreshSecret.isBlank()) {
             refreshSecret = secret;
+        }
+        if (refreshTokenHashSecret == null || refreshTokenHashSecret.isBlank()) {
+            refreshTokenHashSecret = refreshSecret;
         }
         if (refreshTokenExpiration <= 0) {
             refreshTokenExpiration = DEFAULT_REFRESH_TOKEN_EXPIRATION;

@@ -37,8 +37,8 @@ public class User extends BaseEntity {
     @Column(name = "avatar_url", length = 1024)
     private String avatarUrl;
 
-    @Column(name = "refresh_token", length = 1024)
-    private String refreshToken;
+    @Column(name = "refresh_token_hash", length = 128)
+    private String refreshTokenHash;
 
     private User(Long githubId, String email, String name, String githubToken, String avatarUrl) {
         this.githubId = githubId;
@@ -60,11 +60,11 @@ public class User extends BaseEntity {
         this.avatarUrl = avatarUrl;
     }
 
-    public void updateRefreshToken(String refreshToken) {
-        this.refreshToken = refreshToken;
+    public void updateRefreshTokenHash(String refreshTokenHash) {
+        this.refreshTokenHash = refreshTokenHash;
     }
 
     public void clearRefreshToken() {
-        this.refreshToken = null;
+        this.refreshTokenHash = null;
     }
 }
