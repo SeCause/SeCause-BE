@@ -9,6 +9,7 @@ import SeCause.SeCause_be.domain.auth.properties.GithubOAuthProperties;
 import SeCause.SeCause_be.domain.user.entity.User;
 import SeCause.SeCause_be.domain.user.service.UserService;
 import SeCause.SeCause_be.global.security.jwt.JwtTokenProvider;
+import SeCause.SeCause_be.global.security.jwt.RefreshTokenHasher;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
@@ -29,6 +30,7 @@ public class GithubAuthService {
     private final GithubOAuthProperties githubOAuthProperties;
     private final UserService userService;
     private final JwtTokenProvider jwtTokenProvider;
+    private final RefreshTokenHasher refreshTokenHasher;
 
     public GithubLoginResult login(GithubLoginRequest request) {
         GithubAccessTokenResponse tokenResponse = requestAccessToken(request.code());
@@ -45,7 +47,7 @@ public class GithubAuthService {
         );
         String accessToken = jwtTokenProvider.createAccessToken(user);
         String refreshToken = jwtTokenProvider.createRefreshToken(user);
-        userService.updateRefreshToken(user, refreshToken);
+        userService.updateRefreshTokenHash(user, refreshTokenHasher.hash(refreshToken));
 
         GithubLoginResponse response = new GithubLoginResponse(
                 user.getUserId(),

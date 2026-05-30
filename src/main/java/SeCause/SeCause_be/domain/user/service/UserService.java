@@ -24,8 +24,8 @@ public class UserService {
     }
 
     @Transactional
-    public void updateRefreshToken(User user, String refreshToken) {
-        user.updateRefreshToken(refreshToken);
+    public void updateRefreshTokenHash(User user, String refreshTokenHash) {
+        user.updateRefreshTokenHash(refreshTokenHash);
     }
 
     private java.util.Optional<User> findExistingUserByEmail(String email) {
