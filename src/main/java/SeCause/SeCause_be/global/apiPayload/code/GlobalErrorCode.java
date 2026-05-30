@@ -22,8 +22,6 @@ public enum GlobalErrorCode implements BaseErrorCode {
     TYPE_MISMATCH(HttpStatus.BAD_REQUEST, "COMMON4004", "요청 값의 타입이 올바르지 않습니다."),
     CONFLICT(HttpStatus.CONFLICT, "COMMON4091", "이미 존재하는 리소스입니다."),
     EXTERNAL_API_ERROR(HttpStatus.BAD_GATEWAY, "COMMON5021", "외부 API 호출에 실패했습니다."),
-
-    INVALID_REFRESH_TOKEN(HttpStatus.UNAUTHORIZED, "AUTH4011", "유효하지 않은 리프레시 토큰입니다."),
     ;
 
     private final HttpStatus status;

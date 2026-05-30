@@ -1,9 +1,10 @@
 package SeCause.SeCause_be.domain.auth.service;
 
+import SeCause.SeCause_be.domain.auth.code.AuthErrorCode;
 import SeCause.SeCause_be.domain.auth.dto.TokenReissueResult;
+import SeCause.SeCause_be.domain.auth.exception.AuthException;
 import SeCause.SeCause_be.domain.user.entity.User;
 import SeCause.SeCause_be.domain.user.repository.UserRepository;
-import SeCause.SeCause_be.global.apiPayload.code.GlobalErrorCode;
 import SeCause.SeCause_be.global.apiPayload.exception.GeneralException;
 import SeCause.SeCause_be.global.security.jwt.JwtTokenProvider;
 import SeCause.SeCause_be.global.security.jwt.RefreshTokenHasher;
@@ -43,25 +44,29 @@ public class AuthTokenService {
 
     private User getUserByRefreshToken(String refreshToken) {
         if (refreshToken == null || refreshToken.isBlank()) {
-            throw new GeneralException(GlobalErrorCode.INVALID_REFRESH_TOKEN);
+            throw invalidRefreshToken();
         }
 
         try {
             if (!jwtTokenProvider.isValidRefreshToken(refreshToken)) {
-                throw new GeneralException(GlobalErrorCode.INVALID_REFRESH_TOKEN);
+                throw invalidRefreshToken();
             }
 
             Long userId = jwtTokenProvider.getRefreshTokenUserId(refreshToken);
             User user = userRepository.findById(userId)
-                    .orElseThrow(() -> new GeneralException(GlobalErrorCode.INVALID_REFRESH_TOKEN));
+                    .orElseThrow(this::invalidRefreshToken);
 
             if (!refreshTokenHasher.matches(refreshToken, user.getRefreshTokenHash())) {
-                throw new GeneralException(GlobalErrorCode.INVALID_REFRESH_TOKEN);
+                throw invalidRefreshToken();
             }
 
             return user;
         } catch (JwtException | IllegalArgumentException exception) {
-            throw new GeneralException(GlobalErrorCode.INVALID_REFRESH_TOKEN);
+            throw invalidRefreshToken();
         }
+    }
+
+    private AuthException invalidRefreshToken() {
+        return new AuthException(AuthErrorCode.INVALID_REFRESH_TOKEN);
     }
 }
