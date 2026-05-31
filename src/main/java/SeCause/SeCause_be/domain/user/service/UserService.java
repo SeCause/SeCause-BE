@@ -13,14 +13,14 @@ public class UserService {
     private final UserRepository userRepository;
 
     @Transactional
-    public User saveOrUpdateGithubUser(Long githubId, String email, String name, String githubToken, String avatarUrl) {
+    public User saveOrUpdateGithubUser(Long githubId, String githubLoginId, String email, String name, String githubToken, String avatarUrl) {
         return userRepository.findByGithubId(githubId)
                 .or(() -> findExistingUserByEmail(email))
                 .map(user -> {
-                    user.updateGithubProfile(githubId, email, name, githubToken, avatarUrl);
+                    user.updateGithubProfile(githubId, githubLoginId, email, name, githubToken, avatarUrl);
                     return user;
                 })
-                .orElseGet(() -> userRepository.save(User.createGithubUser(githubId, email, name, githubToken, avatarUrl)));
+                .orElseGet(() -> userRepository.save(User.createGithubUser(githubId, githubLoginId, email, name, githubToken, avatarUrl)));
     }
 
     @Transactional
