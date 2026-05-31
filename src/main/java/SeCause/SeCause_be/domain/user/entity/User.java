@@ -25,6 +25,9 @@ public class User extends BaseEntity {
     @Column(name = "github_id", unique = true)
     private Long githubId;
 
+    @Column(name = "github_login_id", unique = true)
+    private String githubLoginId;
+
     @Column(name = "email", unique = true)
     private String email;
 
@@ -40,20 +43,22 @@ public class User extends BaseEntity {
     @Column(name = "refresh_token_hash", length = 128)
     private String refreshTokenHash;
 
-    private User(Long githubId, String email, String name, String githubToken, String avatarUrl) {
+    private User(Long githubId, String githubLoginId, String email, String name, String githubToken, String avatarUrl) {
         this.githubId = githubId;
+        this.githubLoginId = githubLoginId;
         this.email = email;
         this.name = name;
         this.githubToken = githubToken;
         this.avatarUrl = avatarUrl;
     }
 
-    public static User createGithubUser(Long githubId, String email, String name, String githubToken, String avatarUrl) {
-        return new User(githubId, email, name, githubToken, avatarUrl);
+    public static User createGithubUser(Long githubId, String githubLoginId, String email, String name, String githubToken, String avatarUrl) {
+        return new User(githubId, githubLoginId, email, name, githubToken, avatarUrl);
     }
 
-    public void updateGithubProfile(Long githubId, String email, String name, String githubToken, String avatarUrl) {
+    public void updateGithubProfile(Long githubId, String githubLoginId, String email, String name, String githubToken, String avatarUrl) {
         this.githubId = githubId;
+        this.githubLoginId = githubLoginId;
         this.email = email;
         this.name = name;
         this.githubToken = githubToken;

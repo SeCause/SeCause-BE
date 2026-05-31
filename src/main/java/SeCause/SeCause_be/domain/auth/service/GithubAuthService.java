@@ -40,6 +40,7 @@ public class GithubAuthService {
                 : userResponse.login();
         User user = userService.saveOrUpdateGithubUser(
                 userResponse.id(),
+                userResponse.login(),
                 userResponse.email(),
                 name,
                 tokenResponse.accessToken(),
