@@ -6,6 +6,7 @@ import SeCause.SeCause_be.global.apiPayload.exception.GeneralException;
 import SeCause.SeCause_be.global.apiPayload.response.ApiResponse;
 import SeCause.SeCause_be.global.apiPayload.response.ErrorDto;
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.validation.ConstraintViolationException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.HttpRequestMethodNotSupportedException;
@@ -39,6 +40,23 @@ public class ExceptionAdvice {
 
         exception.getBindingResult().getFieldErrors()
                 .forEach(error -> validation.put(error.getField(), error.getDefaultMessage()));
+
+        log.warn("Validation failed: {}", validation);
+
+        return handleExceptionInternal(GlobalErrorCode.VALIDATION_ERROR, ErrorDto.of(validation));
+    }
+
+    @ExceptionHandler(ConstraintViolationException.class)
+    public ResponseEntity<ApiResponse<Void>> handleConstraintViolationException(
+            ConstraintViolationException exception
+    ) {
+        Map<String, String> validation = new LinkedHashMap<>();
+
+        exception.getConstraintViolations()
+                .forEach(violation -> validation.put(
+                        extractFieldName(violation.getPropertyPath().toString()),
+                        violation.getMessage()
+                ));
 
         log.warn("Validation failed: {}", validation);
 
@@ -102,5 +120,14 @@ public class ExceptionAdvice {
         return ResponseEntity
                 .status(errorCode.getStatus())
                 .body(ApiResponse.onFailure(errorCode, error));
+    }
+
+    private String extractFieldName(String propertyPath) {
+        int separatorIndex = propertyPath.lastIndexOf('.');
+        if (separatorIndex < 0 || separatorIndex == propertyPath.length() - 1) {
+            return propertyPath;
+        }
+
+        return propertyPath.substring(separatorIndex + 1);
     }
 }

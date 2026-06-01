@@ -7,8 +7,11 @@ import SeCause.SeCause_be.domain.projectRepository.dto.VulnerableFileListRespons
 import SeCause.SeCause_be.domain.projectRepository.service.RepositoryIssueService;
 import SeCause.SeCause_be.global.apiPayload.response.ApiResponse;
 import SeCause.SeCause_be.global.security.UserPrincipal;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -16,6 +19,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
+@Validated
 @RequiredArgsConstructor
 @RequestMapping("/api/repositories")
 public class RepositoryIssueController implements RepositoryIssueApi {
@@ -28,8 +32,9 @@ public class RepositoryIssueController implements RepositoryIssueApi {
             @AuthenticationPrincipal UserPrincipal userPrincipal,
             @PathVariable Long repositoryId,
             @RequestParam(defaultValue = "ALL") RepositoryIssueSeverity severity,
-            @RequestParam(defaultValue = "1") int page,
-            @RequestParam(defaultValue = "20") int size
+            @RequestParam(defaultValue = "1") @Min(value = 1, message = "페이지 번호는 1 이상이어야 합니다.") int page,
+            @RequestParam(defaultValue = "20") @Min(value = 1, message = "페이지 크기는 1 이상이어야 합니다.")
+            @Max(value = 100, message = "페이지 크기는 100 이하여야 합니다.") int size
     ) {
         RepositoryIssueListResponse response = repositoryIssueService.getRepositoryIssues(
                 repositoryId,

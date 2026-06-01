@@ -3,13 +3,11 @@ package SeCause.SeCause_be.domain.projectRepository.service;
 import SeCause.SeCause_be.domain.analysis.code.AnalysisErrorCode;
 import SeCause.SeCause_be.domain.analysis.exception.AnalysisException;
 import SeCause.SeCause_be.domain.analysis.repository.AnalysisResultRepository;
-import SeCause.SeCause_be.domain.projectRepository.code.ProjectRepositoryErrorCode;
 import SeCause.SeCause_be.domain.projectRepository.dto.RepositoryIssueDetailResponse;
 import SeCause.SeCause_be.domain.projectRepository.dto.RepositoryIssueListResponse;
 import SeCause.SeCause_be.domain.projectRepository.dto.RepositoryIssueSeverity;
 import SeCause.SeCause_be.domain.projectRepository.dto.VulnerableFileListResponse;
-import SeCause.SeCause_be.domain.projectRepository.exception.ProjectRepositoryException;
-import SeCause.SeCause_be.domain.projectRepository.repository.ProjectRepositoryRepository;
+import SeCause.SeCause_be.domain.projectRepository.validator.ProjectRepositoryValidator;
 import SeCause.SeCause_be.domain.vulnerability.entity.Severity;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
@@ -21,8 +19,8 @@ import org.springframework.transaction.annotation.Transactional;
 @Transactional(readOnly = true)
 public class RepositoryIssueService {
 
-    private final ProjectRepositoryRepository projectRepositoryRepository;
     private final AnalysisResultRepository analysisResultRepository;
+    private final ProjectRepositoryValidator projectRepositoryValidator;
 
     public RepositoryIssueListResponse getRepositoryIssues(
             Long repositoryId,
@@ -31,8 +29,7 @@ public class RepositoryIssueService {
             int page,
             int size
     ) {
-        validatePageRequest(page, size);
-        validateRepositoryOwner(repositoryId, userId);
+        projectRepositoryValidator.validateRepositoryOwner(repositoryId, userId);
 
         Severity severityFilter = severity.toSeverityOrNull();
         PageRequest pageRequest = PageRequest.of(page - 1, size);
@@ -45,7 +42,7 @@ public class RepositoryIssueService {
     }
 
     public VulnerableFileListResponse getVulnerableFiles(Long repositoryId, Long userId) {
-        validateRepositoryOwner(repositoryId, userId);
+        projectRepositoryValidator.validateRepositoryOwner(repositoryId, userId);
         return analysisResultRepository.findVulnerableFiles(repositoryId, userId);
     }
 
@@ -54,7 +51,7 @@ public class RepositoryIssueService {
             Long userId,
             Long analysisResultId
     ) {
-        validateRepositoryOwner(repositoryId, userId);
+        projectRepositoryValidator.validateRepositoryOwner(repositoryId, userId);
         RepositoryIssueDetailResponse response = analysisResultRepository.findRepositoryIssueDetail(
                 repositoryId,
                 userId,
@@ -66,18 +63,5 @@ public class RepositoryIssueService {
         }
 
         return response;
-    }
-
-    private void validatePageRequest(int page, int size) {
-        if (page < 1 || size < 1 || size > 100) {
-            throw new ProjectRepositoryException(ProjectRepositoryErrorCode.INVALID_PAGE_REQUEST);
-        }
-    }
-
-    private void validateRepositoryOwner(Long repositoryId, Long userId) {
-        boolean exists = projectRepositoryRepository.existsByRepositoryIdAndUserUserIdAndDeletedFalse(repositoryId, userId);
-        if (!exists) {
-            throw new ProjectRepositoryException(ProjectRepositoryErrorCode.PROJECT_REPOSITORY_NOT_FOUND);
-        }
     }
 }

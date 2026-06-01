@@ -14,6 +14,8 @@ import io.swagger.v3.oas.annotations.media.ExampleObject;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -99,8 +101,11 @@ public interface RepositoryIssueApi {
                             value = """
                                     {
                                       "isSuccess": false,
-                                      "code": "PROJECT_REPOSITORY400",
-                                      "message": "페이지 요청 값이 올바르지 않습니다."
+                                      "code": "COMMON4001",
+                                      "message": "요청 값 검증에 실패했습니다.",
+                                      "error": {
+                                        "page": "페이지 번호는 1 이상이어야 합니다."
+                                      }
                                     }
                                     """
                     )
@@ -148,9 +153,14 @@ public interface RepositoryIssueApi {
 
             @RequestParam(defaultValue = "ALL") RepositoryIssueSeverity severity,
 
-            @RequestParam(defaultValue = "1") int page,
+            @RequestParam(defaultValue = "1")
+            @Min(value = 1, message = "페이지 번호는 1 이상이어야 합니다.")
+            int page,
 
-            @RequestParam(defaultValue = "20") int size
+            @RequestParam(defaultValue = "20")
+            @Min(value = 1, message = "페이지 크기는 1 이상이어야 합니다.")
+            @Max(value = 100, message = "페이지 크기는 100 이하여야 합니다.")
+            int size
     );
 
     @Operation(
