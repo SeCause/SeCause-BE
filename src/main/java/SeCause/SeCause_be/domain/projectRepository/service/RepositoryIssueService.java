@@ -69,7 +69,7 @@ public class RepositoryIssueService {
     }
 
     private void validatePageRequest(int page, int size) {
-        if (page < 1 || size < 1) {
+        if (page < 1 || size < 1 || size > 100) {
             throw new ProjectRepositoryException(ProjectRepositoryErrorCode.INVALID_PAGE_REQUEST);
         }
     }
