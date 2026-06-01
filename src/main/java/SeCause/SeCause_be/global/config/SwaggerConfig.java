@@ -6,12 +6,15 @@ import io.swagger.v3.oas.models.Components;
 import io.swagger.v3.oas.models.OpenAPI;
 import io.swagger.v3.oas.models.info.Info;
 import io.swagger.v3.oas.models.security.SecurityScheme;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 @Configuration
 public class SwaggerConfig {
 
+    @Value("${springdoc.swagger-ui.prod-server}")
+    private String prodServerUrl;
 
     @Bean
     public OpenAPI secauseAPI(){
@@ -31,8 +34,12 @@ public class SwaggerConfig {
                         .scheme("bearer")
                         .bearerFormat("JWT"));
 
+        Server prodServer = new Server().url(prodServerUrl).description("운영 서버 (HTTPS)");
+        Server localServer = new Server().url("http://localhost:8080").description("로컬 테스트용 (HTTP)");
+
         return new OpenAPI()
-                .addServersItem(new Server())
+                .addServersItem(prodServer)
+                .addServersItem(localServer)
                 .info(info)
                 .addSecurityItem(securityRequirement)
                 .components(components);
