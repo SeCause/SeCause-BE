@@ -2,6 +2,7 @@ package SeCause.SeCause_be.domain.analysis.client;
 
 import SeCause.SeCause_be.domain.analysis.code.AnalysisErrorCode;
 import SeCause.SeCause_be.domain.analysis.dto.GithubAccountResponse;
+import SeCause.SeCause_be.domain.analysis.dto.GithubRepositoryResponse;
 import SeCause.SeCause_be.domain.analysis.dto.GithubUserAccountResponse;
 import SeCause.SeCause_be.domain.analysis.exception.AnalysisException;
 import lombok.RequiredArgsConstructor;
@@ -60,6 +61,36 @@ public class GithubRepositoryClient {
                         .queryParam("per_page", PER_PAGE_LIMIT)
                         .build(),
                 new ParameterizedTypeReference<List<GithubAccountResponse>>() {
+                }
+        );
+    }
+
+    public List<GithubRepositoryResponse> getUserOwnedRepositories(String githubToken) {
+        return getList(
+                githubToken,
+                builder -> builder
+                        .scheme("https")
+                        .host("api.github.com")
+                        .path("/user/repos")
+                        .queryParam("affiliation", "owner")
+                        .queryParam("per_page", PER_PAGE_LIMIT)
+                        .build(),
+                new ParameterizedTypeReference<List<GithubRepositoryResponse>>() {
+                }
+        );
+    }
+
+    public List<GithubRepositoryResponse> getOrganizationRepositories(String githubToken, String organization) {
+        return getList(
+                githubToken,
+                builder -> builder
+                        .scheme("https")
+                        .host("api.github.com")
+                        .path("/orgs/{organization}/repos")
+                        .queryParam("type", "all")
+                        .queryParam("per_page", PER_PAGE_LIMIT)
+                        .build(organization),
+                new ParameterizedTypeReference<List<GithubRepositoryResponse>>() {
                 }
         );
     }

@@ -1,5 +1,8 @@
 package SeCause.SeCause_be.domain.analysis.validator;
 
+import SeCause.SeCause_be.domain.analysis.code.AnalysisErrorCode;
+import SeCause.SeCause_be.domain.analysis.dto.GithubAccountResponse;
+import SeCause.SeCause_be.domain.analysis.exception.AnalysisException;
 import SeCause.SeCause_be.domain.user.code.UserErrorCode;
 import SeCause.SeCause_be.domain.user.entity.User;
 import SeCause.SeCause_be.domain.user.exception.UserException;
@@ -7,6 +10,8 @@ import SeCause.SeCause_be.domain.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
+
+import java.util.List;
 
 @Component
 @RequiredArgsConstructor
@@ -25,5 +30,26 @@ public class AnalysisRequestValidator {
         }
 
         return githubToken;
+    }
+
+    public String validateGithubAccountName(String accountName) {
+        if (!StringUtils.hasText(accountName)) {
+            throw new AnalysisException(AnalysisErrorCode.GITHUB_ACCOUNT_NOT_FOUND);
+        }
+
+        return accountName;
+    }
+
+    public void validateOrganizationAccount(
+            List<GithubAccountResponse> organizations,
+            String accountName
+    ) {
+        boolean exists = organizations.stream()
+                .map(GithubAccountResponse::login)
+                .anyMatch(accountName::equals);
+
+        if (!exists) {
+            throw new AnalysisException(AnalysisErrorCode.GITHUB_ACCOUNT_NOT_FOUND);
+        }
     }
 }
