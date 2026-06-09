@@ -40,11 +40,13 @@ public class AnalysisRequestController implements AnalysisRequestApi {
     @Override
     public ApiResponse<LinkableRepositoryListResponse> getLinkableRepositories(
             @AuthenticationPrincipal UserPrincipal userPrincipal,
-            @RequestParam @NotBlank(message = "GitHub 계정명은 필수입니다.") String accountName
+            @RequestParam @NotBlank(message = "GitHub 계정명은 필수입니다.") String accountName,
+            @RequestParam(required = false) String keyword
     ) {
         LinkableRepositoryListResponse response = analysisRequestService.getLinkableRepositories(
                 userPrincipal.userId(),
-                accountName
+                accountName,
+                keyword
         );
 
         return ApiResponse.onSuccess("연동 가능 레포지토리 목록 조회가 완료됐습니다.", response);

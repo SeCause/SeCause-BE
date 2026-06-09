@@ -53,7 +53,7 @@ public class AnalysisRequestService {
         return LinkableGithubAccountListResponse.from(accounts);
     }
 
-    public LinkableRepositoryListResponse getLinkableRepositories(Long userId, String accountName) {
+    public LinkableRepositoryListResponse getLinkableRepositories(Long userId, String accountName, String keyword) {
         User user = analysisRequestValidator.validateLoginUser(userId);
         String githubToken = analysisRequestValidator.validateGithubToken(user.getGithubToken());
         String validatedAccountName = analysisRequestValidator.validateGithubAccountName(accountName);
@@ -77,6 +77,7 @@ public class AnalysisRequestService {
         addRepositories(repositories, githubRepositories);
 
         List<LinkableRepositoryResponse> responses = repositories.values().stream()
+                .filter(repository -> matchesKeyword(repository, keyword))
                 .sorted(Comparator.comparing(LinkableRepositoryResponse::name))
                 .toList();
 
@@ -120,6 +121,16 @@ public class AnalysisRequestService {
                 && repository.owner() != null
                 && StringUtils.hasText(repository.owner().login())
                 && StringUtils.hasText(repository.defaultBranch());
+    }
+
+    private boolean matchesKeyword(LinkableRepositoryResponse repository, String keyword) {
+        if (!StringUtils.hasText(keyword)) {
+            return true;
+        }
+
+        String normalizedKeyword = keyword.trim().toLowerCase();
+        return repository.name().toLowerCase().contains(normalizedKeyword)
+                || repository.owner().toLowerCase().contains(normalizedKeyword);
     }
 
     private boolean isLinkableBranch(GithubBranchResponse branch) {

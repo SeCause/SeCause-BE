@@ -127,6 +127,12 @@ public interface AnalysisRequestApi {
                             required = true,
                             in = ParameterIn.QUERY,
                             example = "SeCause"
+                    ),
+                    @Parameter(
+                            name = "keyword",
+                            description = "레포지토리 이름 또는 owner 기준 검색어",
+                            in = ParameterIn.QUERY,
+                            example = "backend"
                     )
             }
     )
@@ -217,7 +223,9 @@ public interface AnalysisRequestApi {
 
             @RequestParam
             @NotBlank(message = "GitHub 계정명은 필수입니다.")
-            String accountName
+            String accountName,
+
+            @RequestParam(required = false) String keyword
     );
 
     @Operation(
