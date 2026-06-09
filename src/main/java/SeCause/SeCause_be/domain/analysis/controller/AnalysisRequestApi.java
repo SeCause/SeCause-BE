@@ -1,6 +1,7 @@
 package SeCause.SeCause_be.domain.analysis.controller;
 
 import SeCause.SeCause_be.domain.analysis.dto.LinkableGithubAccountListResponse;
+import SeCause.SeCause_be.domain.analysis.dto.LinkableRepositoryBranchListResponse;
 import SeCause.SeCause_be.domain.analysis.dto.LinkableRepositoryListResponse;
 import SeCause.SeCause_be.global.apiPayload.response.ApiResponse;
 import SeCause.SeCause_be.global.security.UserPrincipal;
@@ -14,6 +15,7 @@ import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.constraints.NotBlank;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestParam;
 
 @Tag(name = "Analysis Request", description = "분석 요청 API")
@@ -216,5 +218,96 @@ public interface AnalysisRequestApi {
             @RequestParam
             @NotBlank(message = "GitHub 계정명은 필수입니다.")
             String accountName
+    );
+
+    @Operation(
+            summary = "GitHub 레포지토리 브랜치 목록 조회",
+            description = "선택한 레포지토리의 브랜치 목록을 조회합니다.",
+            security = @SecurityRequirement(name = "Bearer Authentication"),
+            parameters = {
+                    @Parameter(
+                            name = "owner",
+                            description = "레포지토리 owner 로그인명",
+                            required = true,
+                            in = ParameterIn.PATH,
+                            example = "SeCause"
+                    ),
+                    @Parameter(
+                            name = "repository",
+                            description = "레포지토리 이름",
+                            required = true,
+                            in = ParameterIn.PATH,
+                            example = "SeCause-BE"
+                    )
+            }
+    )
+    @io.swagger.v3.oas.annotations.responses.ApiResponse(
+            responseCode = "200",
+            description = "브랜치 목록 조회 성공",
+            content = @Content(
+                    schema = @Schema(implementation = ApiResponse.class),
+                    examples = @ExampleObject(
+                            name = "success",
+                            value = """
+                                    {
+                                      "isSuccess": true,
+                                      "code": "COMMON2000",
+                                      "message": "브랜치 목록 조회가 완료됐습니다.",
+                                      "result": {
+                                        "branches": [
+                                          {
+                                            "name": "develop"
+                                          },
+                                          {
+                                            "name": "main"
+                                          }
+                                        ]
+                                      }
+                                    }
+                                    """
+                    )
+            )
+    )
+    @io.swagger.v3.oas.annotations.responses.ApiResponse(
+            responseCode = "401",
+            description = "인증 실패 또는 GitHub 토큰 문제",
+            content = @Content(
+                    schema = @Schema(implementation = ApiResponse.class),
+                    examples = @ExampleObject(
+                            name = "githubTokenInvalid",
+                            value = """
+                                    {
+                                      "isSuccess": false,
+                                      "code": "ANALYSIS_GITHUB4012",
+                                      "message": "GitHub 인증 정보가 유효하지 않습니다. 다시 로그인해주세요."
+                                    }
+                                    """
+                    )
+            )
+    )
+    @io.swagger.v3.oas.annotations.responses.ApiResponse(
+            responseCode = "502",
+            description = "GitHub API 호출 실패",
+            content = @Content(
+                    schema = @Schema(implementation = ApiResponse.class),
+                    examples = @ExampleObject(
+                            name = "githubApiError",
+                            value = """
+                                    {
+                                      "isSuccess": false,
+                                      "code": "ANALYSIS_GITHUB502",
+                                      "message": "GitHub API 호출에 실패했습니다."
+                                    }
+                                    """
+                    )
+            )
+    )
+    ApiResponse<LinkableRepositoryBranchListResponse> getLinkableRepositoryBranches(
+            @Parameter(hidden = true)
+            @AuthenticationPrincipal UserPrincipal userPrincipal,
+
+            @PathVariable String owner,
+
+            @PathVariable String repository
     );
 }

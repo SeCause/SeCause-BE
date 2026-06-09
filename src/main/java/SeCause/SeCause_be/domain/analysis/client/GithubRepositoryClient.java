@@ -2,6 +2,7 @@ package SeCause.SeCause_be.domain.analysis.client;
 
 import SeCause.SeCause_be.domain.analysis.code.AnalysisErrorCode;
 import SeCause.SeCause_be.domain.analysis.dto.GithubAccountResponse;
+import SeCause.SeCause_be.domain.analysis.dto.GithubBranchResponse;
 import SeCause.SeCause_be.domain.analysis.dto.GithubRepositoryResponse;
 import SeCause.SeCause_be.domain.analysis.dto.GithubUserAccountResponse;
 import SeCause.SeCause_be.domain.analysis.exception.AnalysisException;
@@ -91,6 +92,20 @@ public class GithubRepositoryClient {
                         .queryParam("per_page", PER_PAGE_LIMIT)
                         .build(organization),
                 new ParameterizedTypeReference<List<GithubRepositoryResponse>>() {
+                }
+        );
+    }
+
+    public List<GithubBranchResponse> getRepositoryBranches(String githubToken, String owner, String repository) {
+        return getList(
+                githubToken,
+                builder -> builder
+                        .scheme("https")
+                        .host("api.github.com")
+                        .path("/repos/{owner}/{repository}/branches")
+                        .queryParam("per_page", PER_PAGE_LIMIT)
+                        .build(owner, repository),
+                new ParameterizedTypeReference<List<GithubBranchResponse>>() {
                 }
         );
     }

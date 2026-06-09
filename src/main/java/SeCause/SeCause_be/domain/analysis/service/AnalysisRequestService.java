@@ -2,10 +2,13 @@ package SeCause.SeCause_be.domain.analysis.service;
 
 import SeCause.SeCause_be.domain.analysis.client.GithubRepositoryClient;
 import SeCause.SeCause_be.domain.analysis.dto.GithubAccountResponse;
+import SeCause.SeCause_be.domain.analysis.dto.GithubBranchResponse;
 import SeCause.SeCause_be.domain.analysis.dto.GithubRepositoryResponse;
 import SeCause.SeCause_be.domain.analysis.dto.GithubUserAccountResponse;
 import SeCause.SeCause_be.domain.analysis.dto.LinkableGithubAccountListResponse;
 import SeCause.SeCause_be.domain.analysis.dto.LinkableGithubAccountResponse;
+import SeCause.SeCause_be.domain.analysis.dto.LinkableRepositoryBranchListResponse;
+import SeCause.SeCause_be.domain.analysis.dto.LinkableRepositoryBranchResponse;
 import SeCause.SeCause_be.domain.analysis.dto.LinkableRepositoryListResponse;
 import SeCause.SeCause_be.domain.analysis.dto.LinkableRepositoryResponse;
 import SeCause.SeCause_be.domain.analysis.validator.AnalysisRequestValidator;
@@ -80,6 +83,25 @@ public class AnalysisRequestService {
         return LinkableRepositoryListResponse.from(responses);
     }
 
+    public LinkableRepositoryBranchListResponse getLinkableRepositoryBranches(
+            Long userId,
+            String owner,
+            String repository
+    ) {
+        User user = analysisRequestValidator.validateLoginUser(userId);
+        String githubToken = analysisRequestValidator.validateGithubToken(user.getGithubToken());
+
+        List<LinkableRepositoryBranchResponse> branches = githubRepositoryClient
+                .getRepositoryBranches(githubToken, owner, repository)
+                .stream()
+                .filter(this::isLinkableBranch)
+                .map(LinkableRepositoryBranchResponse::from)
+                .sorted(Comparator.comparing(LinkableRepositoryBranchResponse::name))
+                .toList();
+
+        return LinkableRepositoryBranchListResponse.from(branches);
+    }
+
     private void addRepositories(
             Map<String, LinkableRepositoryResponse> repositories,
             List<GithubRepositoryResponse> githubRepositories
@@ -98,5 +120,9 @@ public class AnalysisRequestService {
                 && repository.owner() != null
                 && StringUtils.hasText(repository.owner().login())
                 && StringUtils.hasText(repository.defaultBranch());
+    }
+
+    private boolean isLinkableBranch(GithubBranchResponse branch) {
+        return StringUtils.hasText(branch.name());
     }
 }
