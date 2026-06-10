@@ -9,6 +9,7 @@ import SeCause.SeCause_be.domain.auth.properties.GithubOAuthProperties;
 import SeCause.SeCause_be.domain.user.entity.User;
 import SeCause.SeCause_be.domain.user.service.UserService;
 import SeCause.SeCause_be.global.security.jwt.JwtTokenProvider;
+import SeCause.SeCause_be.global.security.jwt.RefreshTokenHasher;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
@@ -29,16 +30,25 @@ public class GithubAuthService {
     private final GithubOAuthProperties githubOAuthProperties;
     private final UserService userService;
     private final JwtTokenProvider jwtTokenProvider;
+    private final RefreshTokenHasher refreshTokenHasher;
 
     public GithubLoginResult login(GithubLoginRequest request) {
         GithubAccessTokenResponse tokenResponse = requestAccessToken(request.code());
         GithubUserResponse userResponse = requestUserInfo(tokenResponse.accessToken());
+        String name = userResponse.name() != null && !userResponse.name().isBlank()
+                ? userResponse.name()
+                : userResponse.login();
         User user = userService.saveOrUpdateGithubUser(
+                userResponse.id(),
+                userResponse.login(),
                 userResponse.email(),
-                userResponse.name(),
-                tokenResponse.accessToken()
+                name,
+                tokenResponse.accessToken(),
+                userResponse.avatarUrl()
         );
         String accessToken = jwtTokenProvider.createAccessToken(user);
+        String refreshToken = jwtTokenProvider.createRefreshToken(user);
+        userService.updateRefreshTokenHash(user, refreshTokenHasher.hash(refreshToken));
 
         GithubLoginResponse response = new GithubLoginResponse(
                 user.getUserId(),
@@ -49,7 +59,7 @@ public class GithubAuthService {
                 userResponse.avatarUrl()
         );
 
-        return new GithubLoginResult(response, accessToken);
+        return new GithubLoginResult(response, accessToken, refreshToken);
     }
 
     private GithubAccessTokenResponse requestAccessToken(String code) {
