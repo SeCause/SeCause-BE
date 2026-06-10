@@ -1,6 +1,6 @@
 package SeCause.SeCause_be.domain.analysis.client;
 
-import SeCause.SeCause_be.domain.analysis.code.AnalysisErrorCode;
+import SeCause.SeCause_be.domain.analysis.exception.code.AnalysisErrorCode;
 import SeCause.SeCause_be.domain.analysis.dto.FastApiAnalysisRequest;
 import SeCause.SeCause_be.domain.analysis.exception.AnalysisException;
 import lombok.RequiredArgsConstructor;

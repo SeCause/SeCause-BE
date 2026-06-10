@@ -1,6 +1,6 @@
 package SeCause.SeCause_be.domain.analysis.validator;
 
-import SeCause.SeCause_be.domain.analysis.code.AnalysisErrorCode;
+import SeCause.SeCause_be.domain.analysis.exception.code.AnalysisErrorCode;
 import SeCause.SeCause_be.domain.analysis.dto.GithubAccountResponse;
 import SeCause.SeCause_be.domain.analysis.exception.AnalysisException;
 import SeCause.SeCause_be.domain.user.code.UserErrorCode;

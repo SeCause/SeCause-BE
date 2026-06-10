@@ -1,7 +1,7 @@
 package SeCause.SeCause_be.domain.analysis.service;
 
 import SeCause.SeCause_be.domain.analysis.client.FastApiAnalysisClient;
-import SeCause.SeCause_be.domain.analysis.code.AnalysisErrorCode;
+import SeCause.SeCause_be.domain.analysis.exception.code.AnalysisErrorCode;
 import SeCause.SeCause_be.domain.analysis.dto.FastApiAnalysisRequest;
 import SeCause.SeCause_be.domain.analysis.entity.Analysis;
 import SeCause.SeCause_be.domain.analysis.entity.AnalysisStatus;
