@@ -371,14 +371,14 @@ public interface AnalysisRequestApi {
             security = @SecurityRequirement(name = "Bearer Authentication"),
             parameters = {
                     @Parameter(
-                            name = "owner",
-                            description = "레포지토리 owner 로그인명",
+                            name = "ownerName",
+                            description = "레포지토리 ownerName 로그인명",
                             required = true,
                             in = ParameterIn.PATH,
                             example = "SeCause"
                     ),
                     @Parameter(
-                            name = "repository",
+                            name = "repositoryName",
                             description = "레포지토리 이름",
                             required = true,
                             in = ParameterIn.PATH,
@@ -451,8 +451,8 @@ public interface AnalysisRequestApi {
             @Parameter(hidden = true)
             @AuthenticationPrincipal UserPrincipal userPrincipal,
 
-            @PathVariable String owner,
+            @PathVariable String ownerName,
 
-            @PathVariable String repository
+            @PathVariable String repositoryName
     );
 }

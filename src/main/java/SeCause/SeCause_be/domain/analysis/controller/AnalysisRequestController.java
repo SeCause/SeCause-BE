@@ -24,7 +24,7 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 @Validated
 @RequiredArgsConstructor
-@RequestMapping("/analysis/request")
+@RequestMapping("/api/analysis/request")
 public class AnalysisRequestController implements AnalysisRequestApi {
 
     private final AnalysisRequestService analysisRequestService;
@@ -71,17 +71,17 @@ public class AnalysisRequestController implements AnalysisRequestApi {
         return ApiResponse.onSuccess("연동 가능 레포지토리 목록 조회가 완료됐습니다.", response);
     }
 
-    @GetMapping("/repositories/{owner}/{repository}/branches")
+    @GetMapping("/repositories/{ownerName}/{repositoryName}/branches")
     @Override
     public ApiResponse<LinkableRepositoryBranchListResponse> getLinkableRepositoryBranches(
             @AuthenticationPrincipal UserPrincipal userPrincipal,
-            @PathVariable String owner,
-            @PathVariable String repository
+            @PathVariable String ownerName,
+            @PathVariable String repositoryName
     ) {
         LinkableRepositoryBranchListResponse response = analysisRequestService.getLinkableRepositoryBranches(
                 userPrincipal.userId(),
-                owner,
-                repository
+                ownerName,
+                repositoryName
         );
 
         return ApiResponse.onSuccess("브랜치 목록 조회가 완료됐습니다.", response);
