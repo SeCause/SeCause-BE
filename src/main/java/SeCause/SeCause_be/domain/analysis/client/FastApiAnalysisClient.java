@@ -16,7 +16,7 @@ public class FastApiAnalysisClient {
 
     private final WebClient webClient;
 
-    @Value("${fastapi.analysis-request-url:http://localhost:8001/api/internal/request}")
+    @Value("${fast-api.analysis-request-url}")
     private String analysisRequestUrl;
 
     //fastAPI로 분석 요청 전송
