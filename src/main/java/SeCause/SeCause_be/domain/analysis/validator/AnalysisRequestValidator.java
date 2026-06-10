@@ -37,7 +37,7 @@ public class AnalysisRequestValidator {
             throw new AnalysisException(AnalysisErrorCode.GITHUB_ACCOUNT_NOT_FOUND);
         }
 
-        return accountName;
+        return accountName.trim(); //혹시 모를 공백 제거
     }
 
     public void validateOrganizationAccount(
@@ -46,7 +46,9 @@ public class AnalysisRequestValidator {
     ) {
         boolean exists = organizations.stream()
                 .map(GithubAccountResponse::login)
-                .anyMatch(accountName::equals);
+                .filter(StringUtils::hasText)
+                .anyMatch(login -> login.equalsIgnoreCase(accountName.trim()));
+
 
         if (!exists) {
             throw new AnalysisException(AnalysisErrorCode.GITHUB_ACCOUNT_NOT_FOUND);
