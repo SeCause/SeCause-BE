@@ -30,5 +30,8 @@ github:
     redirect-uri: ${GITHUB_REDIRECT_URI:http://localhost:3000/login/callback}
 
 jwt:
-  secret: ${JWT_SECRET}
+  secret: ${JWT_SECRET:secause-local-jwt-secret-key-2026-development-only}
   access-token-expiration: ${JWT_ACCESS_TOKEN_EXPIRATION:3600000}
+  refresh-token-expiration: 1209600000 # 14일
+  refresh-secret: ${JWT_REFRESH_SECRET_LOCAL:secause-secret-key-for-local-development-2026}
+  refresh-token-hash-secret: ${JWT_REFRESH_HASH_SECRET_LOCAL:secause-hash-secret-key-for-local-development-2026}
