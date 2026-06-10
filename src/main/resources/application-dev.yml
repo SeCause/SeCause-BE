@@ -1,0 +1,36 @@
+spring:
+  application:
+    name: SeCause-be
+  datasource:
+    driver-class-name: org.postgresql.Driver
+    url: ${DB_URL}
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
+  sql:
+    init:
+      mode: always
+      separator: "@@"
+  jpa:
+    hibernate:
+      ddl-auto: validate
+
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
+    operations-sorter: method
+    prod-server: ${SWAGGER_SERVER_URL}
+  api-docs:
+    path: /api-docs
+
+github:
+  oauth:
+    client-id: ${GITHUB_CLIENT_ID}
+    client-secret: ${GITHUB_CLIENT_SECRET}
+    redirect-uri: ${GITHUB_REDIRECT_URI}
+
+jwt:
+  secret: ${JWT_SECRET}
+  access-token-expiration: ${JWT_ACCESS_TOKEN_EXPIRATION:3600000}
+  refresh-token-expiration: 1209600000 # 14일
+  refresh-secret: ${REFRESH_SECRET}
+  refresh-token-hash-secret: ${REFRESH_TOKEN_HASH_SECRET}

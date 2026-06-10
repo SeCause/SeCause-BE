@@ -42,5 +42,3 @@ secrets.yml
 .sts4-cache
 
 .idea
-
-src/main/resources/application.yml
