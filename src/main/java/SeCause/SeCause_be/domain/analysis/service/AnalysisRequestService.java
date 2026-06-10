@@ -1,6 +1,8 @@
 package SeCause.SeCause_be.domain.analysis.service;
 
 import SeCause.SeCause_be.domain.analysis.client.GithubRepositoryClient;
+import SeCause.SeCause_be.domain.analysis.dto.AnalysisRequestCreateRequest;
+import SeCause.SeCause_be.domain.analysis.dto.AnalysisRequestCreateResponse;
 import SeCause.SeCause_be.domain.analysis.dto.GithubAccountResponse;
 import SeCause.SeCause_be.domain.analysis.dto.GithubBranchResponse;
 import SeCause.SeCause_be.domain.analysis.dto.GithubRepositoryResponse;
@@ -11,9 +13,15 @@ import SeCause.SeCause_be.domain.analysis.dto.LinkableRepositoryBranchListRespon
 import SeCause.SeCause_be.domain.analysis.dto.LinkableRepositoryBranchResponse;
 import SeCause.SeCause_be.domain.analysis.dto.LinkableRepositoryListResponse;
 import SeCause.SeCause_be.domain.analysis.dto.LinkableRepositoryResponse;
+import SeCause.SeCause_be.domain.analysis.entity.Analysis;
+import SeCause.SeCause_be.domain.analysis.event.AnalysisRequestedEvent;
+import SeCause.SeCause_be.domain.analysis.repository.AnalysisRepository;
 import SeCause.SeCause_be.domain.analysis.validator.AnalysisRequestValidator;
+import SeCause.SeCause_be.domain.projectRepository.entity.ProjectRepository;
+import SeCause.SeCause_be.domain.projectRepository.repository.ProjectRepositoryRepository;
 import SeCause.SeCause_be.domain.user.entity.User;
 import lombok.RequiredArgsConstructor;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
@@ -30,6 +38,9 @@ public class AnalysisRequestService {
 
     private final GithubRepositoryClient githubRepositoryClient;
     private final AnalysisRequestValidator analysisRequestValidator;
+    private final ProjectRepositoryRepository projectRepositoryRepository;
+    private final AnalysisRepository analysisRepository;
+    private final ApplicationEventPublisher eventPublisher;
 
     public LinkableGithubAccountListResponse getLinkableGithubAccounts(Long userId) {
         User user = analysisRequestValidator.validateLoginUser(userId);
@@ -101,6 +112,49 @@ public class AnalysisRequestService {
                 .toList();
 
         return LinkableRepositoryBranchListResponse.from(branches);
+    }
+
+    @Transactional
+    public AnalysisRequestCreateResponse createAnalysisRequest(
+            Long userId,
+            AnalysisRequestCreateRequest request
+    ) {
+        User user = analysisRequestValidator.validateLoginUser(userId);
+        String githubToken = analysisRequestValidator.validateGithubToken(user.getGithubToken());
+
+        //분석 요청을 위한 github repository, branch 정보 가져오기
+        GithubRepositoryResponse githubRepository = githubRepositoryClient.getRepository(
+                githubToken,
+                request.owner(),
+                request.repositoryName()
+        );
+        githubRepositoryClient.getRepositoryBranch(
+                githubToken,
+                request.owner(),
+                request.repositoryName(),
+                request.branch()
+        );
+
+        //분석 관련 정보 저장
+        ProjectRepository repository = projectRepositoryRepository.save(ProjectRepository.create(
+                user,
+                githubRepository.name(),
+                githubRepository.description(),
+                githubRepository.cloneUrl(),
+                request.branch()
+        ));
+        Analysis analysis = analysisRepository.save(Analysis.create(repository));
+
+        //비동기 처리 (추후 대기 큐 도입 고려중)
+        eventPublisher.publishEvent(new AnalysisRequestedEvent(
+                analysis.getAnalysisId(),
+                repository.getRepositoryId(),
+                githubRepository.cloneUrl(),
+                request.branch(),
+                githubToken
+        ));
+
+        return AnalysisRequestCreateResponse.of(analysis, repository);
     }
 
     private void addRepositories(

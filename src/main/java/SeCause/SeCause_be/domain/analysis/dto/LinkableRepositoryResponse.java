@@ -6,6 +6,7 @@ public record LinkableRepositoryResponse(
         String name,
         String owner,
         String defaultBranch,
+        String githubUrl,
         @JsonProperty("private")
         boolean privateRepository
 ) {
@@ -15,6 +16,7 @@ public record LinkableRepositoryResponse(
                 githubRepository.name(),
                 githubRepository.owner().login(),
                 githubRepository.defaultBranch(),
+                githubRepository.htmlUrl(),
                 githubRepository.privateRepository()
         );
     }

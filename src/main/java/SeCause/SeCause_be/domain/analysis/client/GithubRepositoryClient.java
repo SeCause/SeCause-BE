@@ -96,6 +96,19 @@ public class GithubRepositoryClient {
         );
     }
 
+    public GithubRepositoryResponse getRepository(String githubToken, String owner, String repository) {
+        return getObject(
+                githubToken,
+                builder -> builder
+                        .scheme("https")
+                        .host("api.github.com")
+                        .path("/repos/{owner}/{repository}")
+                        .build(owner, repository),
+                GithubRepositoryResponse.class,
+                AnalysisErrorCode.GITHUB_REPOSITORY_NOT_FOUND
+        );
+    }
+
     public List<GithubBranchResponse> getRepositoryBranches(String githubToken, String owner, String repository) {
         return getList(
                 githubToken,
@@ -108,6 +121,57 @@ public class GithubRepositoryClient {
                 new ParameterizedTypeReference<List<GithubBranchResponse>>() {
                 }
         );
+    }
+
+    public GithubBranchResponse getRepositoryBranch(
+            String githubToken,
+            String owner,
+            String repository,
+            String branch
+    ) {
+        return getObject(
+                githubToken,
+                builder -> builder
+                        .scheme("https")
+                        .host("api.github.com")
+                        .path("/repos/{owner}/{repository}/branches/{branch}")
+                        .build(owner, repository, branch),
+                GithubBranchResponse.class,
+                AnalysisErrorCode.GITHUB_BRANCH_NOT_FOUND
+        );
+    }
+
+    private <T> T getObject(
+            String githubToken,
+            Function<UriBuilder, URI> uriFunction,
+            Class<T> responseType,
+            AnalysisErrorCode notFoundCode
+    ) {
+        try {
+            T response = webClient.get()
+                    .uri(uriFunction)
+                    .header(HttpHeaders.AUTHORIZATION, "Bearer " + githubToken)
+                    .accept(MediaType.APPLICATION_JSON)
+                    .retrieve()
+                    .bodyToMono(responseType)
+                    .block();
+
+            if (response == null) {
+                throw new AnalysisException(notFoundCode);
+            }
+
+            return response;
+        } catch (WebClientResponseException.Unauthorized exception) {
+            throw new AnalysisException(AnalysisErrorCode.GITHUB_TOKEN_INVALID);
+        } catch (WebClientResponseException.Forbidden exception) {
+            throw new AnalysisException(AnalysisErrorCode.GITHUB_API_FORBIDDEN);
+        } catch (WebClientResponseException.NotFound exception) {
+            throw new AnalysisException(notFoundCode);
+        } catch (WebClientResponseException exception) {
+            throw new AnalysisException(AnalysisErrorCode.GITHUB_API_REQUEST_FAILED);
+        } catch (WebClientException exception) {
+            throw new AnalysisException(AnalysisErrorCode.GITHUB_API_REQUEST_FAILED);
+        }
     }
 
     private <T> List<T> getList(
