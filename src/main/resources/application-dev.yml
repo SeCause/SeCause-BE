@@ -36,4 +36,4 @@ jwt:
   refresh-token-hash-secret: ${REFRESH_TOKEN_HASH_SECRET}
 
 fast-api:
-  analysis-request-url: ${FASTAPI_ANALYSIS_REQUEST}
+  analysis-request-url: ${FASTAPI_ANALYSIS_REQUEST_URL}

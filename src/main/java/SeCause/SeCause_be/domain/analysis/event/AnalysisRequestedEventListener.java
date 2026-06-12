@@ -14,7 +14,7 @@ public class AnalysisRequestedEventListener {
 
     private final AnalysisRequestQueueConsumer analysisRequestQueueConsumer;
 
-    @Async
+    @Async("analysisTaskExecutor")
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     public void handle(AnalysisRequestedEvent event) {
         analysisRequestQueueConsumer.consume(new AnalysisRequestQueueMessage(event.analysisId()));

@@ -124,7 +124,7 @@ public class AnalysisRequestService {
                 request.owner(),
                 request.repositoryName()
         );
-        githubRepositoryClient.getRepositoryBranch(
+        githubRepositoryClient.validateRepositoryBranchExists(
                 githubToken,
                 request.owner(),
                 request.repositoryName(),
