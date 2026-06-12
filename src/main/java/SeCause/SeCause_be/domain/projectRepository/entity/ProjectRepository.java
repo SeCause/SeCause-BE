@@ -33,6 +33,9 @@ public class ProjectRepository extends BaseEntity {
     @Column(name = "title", nullable = false)
     private String title;
 
+    @Column(name = "owner", nullable = false)
+    private String owner;
+
     @Column(name = "description", length = 500)
     private String description;
 
@@ -48,8 +51,19 @@ public class ProjectRepository extends BaseEntity {
     @Column(name = "total_files", nullable = false)
     private int totalFiles = 0;
 
-    private ProjectRepository(User user, String title, String description, String githubLink, String branch) {
+    @Column(name = "line_count", nullable = false)
+    private long lineCount = 0L;
+
+    private ProjectRepository(
+            User user,
+            String owner,
+            String title,
+            String description,
+            String githubLink,
+            String branch
+    ) {
         this.user = user;
+        this.owner = owner;
         this.title = title;
         this.description = description;
         this.githubLink = githubLink;
@@ -58,12 +72,13 @@ public class ProjectRepository extends BaseEntity {
 
     public static ProjectRepository create(
             User user,
+            String owner,
             String title,
             String description,
             String githubLink,
             String branch
     ) {
-        return new ProjectRepository(user, title, description, githubLink, branch);
+        return new ProjectRepository(user, owner, title, description, githubLink, branch);
     }
 
     public void updateInfo(String title, String description, String githubLink, String branch) {
@@ -73,8 +88,9 @@ public class ProjectRepository extends BaseEntity {
         this.branch = branch;
     }
 
-    public void updateTotalFiles(int totalFiles) {
+    public void updateAnalysisMetrics(int totalFiles, long lineCount) {
         this.totalFiles = totalFiles;
+        this.lineCount = lineCount;
     }
 
     public void delete() {
