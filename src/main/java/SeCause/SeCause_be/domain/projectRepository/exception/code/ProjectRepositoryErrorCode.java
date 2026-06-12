@@ -1,4 +1,4 @@
-package SeCause.SeCause_be.domain.projectRepository.code;
+package SeCause.SeCause_be.domain.projectRepository.exception.code;
 
 import SeCause.SeCause_be.global.apiPayload.code.BaseErrorCode;
 import lombok.AllArgsConstructor;

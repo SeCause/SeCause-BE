@@ -69,20 +69,8 @@ jobs:
             set -e
             mkdir -p /home/ubuntu/app
             cd /home/ubuntu/app
-            cat > docker-compose.yml <<EOF
-            services:
-              secause:
-                image: ${DOCKER_REPO}:latest
-                container_name: secause
-                env_file:
-                  - /etc/secause/secause.env
-                ports:
-                  - "8080:8080"
-                restart: unless-stopped
-            EOF
 
-            docker compose down --remove-orphans || true
-            docker compose pull
-            docker compose up -d
+            docker compose pull secause
+            docker compose up -d --no-deps secause
 
             docker image prune -f

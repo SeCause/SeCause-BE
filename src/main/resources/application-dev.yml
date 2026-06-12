@@ -34,3 +34,6 @@ jwt:
   refresh-token-expiration: 1209600000 # 14일
   refresh-secret: ${REFRESH_SECRET}
   refresh-token-hash-secret: ${REFRESH_TOKEN_HASH_SECRET}
+
+fast-api:
+  analysis-request-url: ${FASTAPI_ANALYSIS_REQUEST_URL}

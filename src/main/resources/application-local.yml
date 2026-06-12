@@ -35,3 +35,6 @@ jwt:
   refresh-token-expiration: 1209600000 # 14일
   refresh-secret: ${JWT_REFRESH_SECRET_LOCAL:secause-secret-key-for-local-development-2026}
   refresh-token-hash-secret: ${JWT_REFRESH_HASH_SECRET_LOCAL:secause-hash-secret-key-for-local-development-2026}
+
+fast-api:
+  analysis-request-url: ${FASTAPI_ANALYSIS_REQUEST_LOCAL:http://localhost:8001/api/internal/analyze}

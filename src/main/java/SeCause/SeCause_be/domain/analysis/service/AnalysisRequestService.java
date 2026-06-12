@@ -1,6 +1,8 @@
 package SeCause.SeCause_be.domain.analysis.service;
 
 import SeCause.SeCause_be.domain.analysis.client.GithubRepositoryClient;
+import SeCause.SeCause_be.domain.analysis.dto.AnalysisRequestCreateRequest;
+import SeCause.SeCause_be.domain.analysis.dto.AnalysisRequestCreateResponse;
 import SeCause.SeCause_be.domain.analysis.dto.GithubAccountResponse;
 import SeCause.SeCause_be.domain.analysis.dto.GithubBranchResponse;
 import SeCause.SeCause_be.domain.analysis.dto.GithubRepositoryResponse;
@@ -15,6 +17,7 @@ import SeCause.SeCause_be.domain.analysis.validator.AnalysisRequestValidator;
 import SeCause.SeCause_be.domain.user.entity.User;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
@@ -30,6 +33,7 @@ public class AnalysisRequestService {
 
     private final GithubRepositoryClient githubRepositoryClient;
     private final AnalysisRequestValidator analysisRequestValidator;
+    private final AnalysisRequestPersistenceService analysisRequestPersistenceService;
 
     public LinkableGithubAccountListResponse getLinkableGithubAccounts(Long userId) {
         User user = analysisRequestValidator.validateLoginUser(userId);
@@ -102,6 +106,36 @@ public class AnalysisRequestService {
 
         return LinkableRepositoryBranchListResponse.from(branches);
     }
+
+    //분석 요청 생성
+    @Transactional(propagation = Propagation.NOT_SUPPORTED)
+    public AnalysisRequestCreateResponse createAnalysisRequest(
+            Long userId,
+            AnalysisRequestCreateRequest request
+    ) {
+        //권한 검증
+        User user = analysisRequestValidator.validateLoginUser(userId);
+        String githubToken = analysisRequestValidator.validateGithubToken(user.getGithubToken());
+        analysisRequestValidator.validateRepositoryOwnerAccess(githubToken, request.owner());
+
+        //관련 정보 가져오기
+        GithubRepositoryResponse githubRepository = githubRepositoryClient.getRepository(
+                githubToken,
+                request.owner(),
+                request.repositoryName()
+        );
+        githubRepositoryClient.validateRepositoryBranchExists(
+                githubToken,
+                request.owner(),
+                request.repositoryName(),
+                request.branch()
+        );
+
+        // DB 저장 & fastAPI로 분석 요청 전송
+        return analysisRequestPersistenceService.saveAnalysisRequest(user, githubRepository, request);
+    }
+
+
 
     private void addRepositories(
             Map<String, LinkableRepositoryResponse> repositories,

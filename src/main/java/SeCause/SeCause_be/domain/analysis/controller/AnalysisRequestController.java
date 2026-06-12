@@ -1,17 +1,22 @@
 package SeCause.SeCause_be.domain.analysis.controller;
 
+import SeCause.SeCause_be.domain.analysis.dto.AnalysisRequestCreateRequest;
+import SeCause.SeCause_be.domain.analysis.dto.AnalysisRequestCreateResponse;
 import SeCause.SeCause_be.domain.analysis.dto.LinkableGithubAccountListResponse;
 import SeCause.SeCause_be.domain.analysis.dto.LinkableRepositoryBranchListResponse;
 import SeCause.SeCause_be.domain.analysis.dto.LinkableRepositoryListResponse;
 import SeCause.SeCause_be.domain.analysis.service.AnalysisRequestService;
 import SeCause.SeCause_be.global.apiPayload.response.ApiResponse;
 import SeCause.SeCause_be.global.security.UserPrincipal;
+import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -19,10 +24,24 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 @Validated
 @RequiredArgsConstructor
-@RequestMapping("/analysis/request")
+@RequestMapping("/api/analysis/request")
 public class AnalysisRequestController implements AnalysisRequestApi {
 
     private final AnalysisRequestService analysisRequestService;
+
+    @PostMapping
+    @Override
+    public ApiResponse<AnalysisRequestCreateResponse> createAnalysisRequest(
+            @AuthenticationPrincipal UserPrincipal userPrincipal,
+            @RequestBody @Valid AnalysisRequestCreateRequest request
+    ) {
+        AnalysisRequestCreateResponse response = analysisRequestService.createAnalysisRequest(
+                userPrincipal.userId(),
+                request
+        );
+
+        return ApiResponse.onSuccess("분석 요청이 전송됐습니다.", response);
+    }
 
     @GetMapping("/accounts")
     @Override
@@ -52,17 +71,17 @@ public class AnalysisRequestController implements AnalysisRequestApi {
         return ApiResponse.onSuccess("연동 가능 레포지토리 목록 조회가 완료됐습니다.", response);
     }
 
-    @GetMapping("/repositories/{owner}/{repository}/branches")
+    @GetMapping("/repositories/{ownerName}/{repositoryName}/branches")
     @Override
     public ApiResponse<LinkableRepositoryBranchListResponse> getLinkableRepositoryBranches(
             @AuthenticationPrincipal UserPrincipal userPrincipal,
-            @PathVariable String owner,
-            @PathVariable String repository
+            @PathVariable String ownerName,
+            @PathVariable String repositoryName
     ) {
         LinkableRepositoryBranchListResponse response = analysisRequestService.getLinkableRepositoryBranches(
                 userPrincipal.userId(),
-                owner,
-                repository
+                ownerName,
+                repositoryName
         );
 
         return ApiResponse.onSuccess("브랜치 목록 조회가 완료됐습니다.", response);
