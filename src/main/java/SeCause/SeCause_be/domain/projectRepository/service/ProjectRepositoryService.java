@@ -7,6 +7,7 @@ import SeCause.SeCause_be.domain.projectRepository.dto.RepositoryDashboardSummar
 import SeCause.SeCause_be.domain.projectRepository.dto.RepositoryIssueTypeCountResponse;
 import SeCause.SeCause_be.domain.projectRepository.dto.RepositoryListResponse;
 import SeCause.SeCause_be.domain.projectRepository.dto.RepositorySeverityBreakdownResponse;
+import SeCause.SeCause_be.domain.projectRepository.entity.ProjectRepository;
 import SeCause.SeCause_be.domain.projectRepository.exception.ProjectRepositoryException;
 import SeCause.SeCause_be.domain.projectRepository.exception.code.ProjectRepositoryErrorCode;
 import SeCause.SeCause_be.domain.projectRepository.repository.ProjectRepositoryRepository;
@@ -99,6 +100,20 @@ public class ProjectRepositoryService {
                         })
                         .toList()
         );
+    }
+
+    /**
+     * 로그인 사용자가 소유한 레포지토리를 삭제 처리합니다.
+     */
+    @Transactional
+    public void deleteRepository(Long repositoryId, Long userId) {
+        ProjectRepository repository = projectRepositoryRepository
+                .findByRepositoryIdAndUserUserIdAndDeletedFalse(repositoryId, userId)
+                .orElseThrow(() -> new ProjectRepositoryException(
+                        ProjectRepositoryErrorCode.PROJECT_REPOSITORY_NOT_FOUND
+                ));
+
+        repository.delete();
     }
 
     private long issueCount(Map<Severity, Long> countsBySeverity, Severity severity) {

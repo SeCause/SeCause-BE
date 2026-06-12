@@ -5,6 +5,9 @@ import SeCause.SeCause_be.domain.projectRepository.dto.RepositoryDashboardRespon
 import SeCause.SeCause_be.domain.projectRepository.dto.RepositoryListResponse;
 import SeCause.SeCause_be.domain.projectRepository.dto.RepositorySeverityCountResponse;
 import SeCause.SeCause_be.domain.projectRepository.dto.RepositorySummaryResponse;
+import SeCause.SeCause_be.domain.projectRepository.entity.ProjectRepository;
+import SeCause.SeCause_be.domain.projectRepository.exception.ProjectRepositoryException;
+import SeCause.SeCause_be.domain.projectRepository.exception.code.ProjectRepositoryErrorCode;
 import SeCause.SeCause_be.domain.projectRepository.repository.ProjectRepositoryRepository;
 import SeCause.SeCause_be.domain.projectRepository.repository.RepositoryDashboardQueryResult;
 import SeCause.SeCause_be.domain.projectRepository.validator.ProjectRepositoryValidator;
@@ -22,6 +25,7 @@ import java.util.Map;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.verify;
 
@@ -124,5 +128,47 @@ class ProjectRepositoryServiceTest {
                 );
         assertThat(response.severityBreakdown().getFirst().percentage()).isEqualTo(3.23);
         verify(projectRepositoryValidator).validateRepositoryOwner(repositoryId, userId);
+    }
+
+    @Test
+    void deleteRepositoryMarksRepositoryAsDeleted() {
+        Long repositoryId = 10L;
+        Long userId = 1L;
+        ProjectRepository repository = ProjectRepository.create(
+                null,
+                "secause",
+                "SeCause-BE",
+                "Security analysis backend",
+                "https://github.com/secause/SeCause-BE.git",
+                "develop"
+        );
+        given(projectRepositoryRepository.findByRepositoryIdAndUserUserIdAndDeletedFalse(
+                repositoryId,
+                userId
+        )).willReturn(Optional.of(repository));
+
+        projectRepositoryService.deleteRepository(repositoryId, userId);
+
+        assertThat(repository.isDeleted()).isTrue();
+        verify(projectRepositoryRepository).findByRepositoryIdAndUserUserIdAndDeletedFalse(
+                repositoryId,
+                userId
+        );
+    }
+
+    @Test
+    void deleteRepositoryThrowsExceptionWhenRepositoryIsNotAccessible() {
+        Long repositoryId = 10L;
+        Long userId = 1L;
+        given(projectRepositoryRepository.findByRepositoryIdAndUserUserIdAndDeletedFalse(
+                repositoryId,
+                userId
+        )).willReturn(Optional.empty());
+
+        assertThatThrownBy(() -> projectRepositoryService.deleteRepository(repositoryId, userId))
+                .isInstanceOf(ProjectRepositoryException.class)
+                .satisfies(exception -> assertThat(
+                        ((ProjectRepositoryException) exception).getErrorCode()
+                ).isEqualTo(ProjectRepositoryErrorCode.PROJECT_REPOSITORY_NOT_FOUND));
     }
 }
