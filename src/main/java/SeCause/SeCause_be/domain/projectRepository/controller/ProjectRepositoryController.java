@@ -7,6 +7,7 @@ import SeCause.SeCause_be.global.apiPayload.response.ApiResponse;
 import SeCause.SeCause_be.global.security.UserPrincipal;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -48,5 +49,15 @@ public class ProjectRepositoryController implements ProjectRepositoryApi {
         );
 
         return ApiResponse.onSuccess("레포지토리 대시보드 조회가 완료됐습니다.", response);
+    }
+
+    @DeleteMapping("/{repositoryId}")
+    @Override
+    public ApiResponse<Void> deleteRepository(
+            @AuthenticationPrincipal UserPrincipal userPrincipal,
+            @PathVariable Long repositoryId
+    ) {
+        projectRepositoryService.deleteRepository(repositoryId, userPrincipal.userId());
+        return ApiResponse.onSuccess("레포지토리 삭제가 완료됐습니다.");
     }
 }

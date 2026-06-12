@@ -70,4 +70,26 @@ class ProjectRepositoryControllerTest {
         assertThat(response.result()).isSameAs(serviceResponse);
         verify(projectRepositoryService).getRepositoryDashboard(repositoryId, userPrincipal.userId());
     }
+
+    @Test
+    void deleteRepositoryReturnsSuccessResponse() {
+        Long repositoryId = 10L;
+        UserPrincipal userPrincipal = new UserPrincipal(
+                1L,
+                "tester",
+                "tester@example.com",
+                "Tester",
+                "https://example.com/avatar.png"
+        );
+
+        ApiResponse<Void> response = projectRepositoryController.deleteRepository(
+                userPrincipal,
+                repositoryId
+        );
+
+        assertThat(response.isSuccess()).isTrue();
+        assertThat(response.message()).isEqualTo("레포지토리 삭제가 완료됐습니다.");
+        assertThat(response.result()).isNull();
+        verify(projectRepositoryService).deleteRepository(repositoryId, userPrincipal.userId());
+    }
 }

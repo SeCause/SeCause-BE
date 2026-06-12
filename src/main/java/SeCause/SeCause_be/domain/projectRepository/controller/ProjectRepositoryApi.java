@@ -197,4 +197,68 @@ public interface ProjectRepositoryApi {
             @Parameter(description = "레포지토리 ID", required = true, example = "1")
             @PathVariable Long repositoryId
     );
+
+    @Operation(
+            summary = "레포지토리 삭제",
+            description = "로그인한 사용자가 소유한 레포지토리를 삭제 처리합니다.",
+            security = @SecurityRequirement(name = "Bearer Authentication")
+    )
+    @io.swagger.v3.oas.annotations.responses.ApiResponse(
+            responseCode = "200",
+            description = "레포지토리 삭제 성공",
+            content = @Content(
+                    schema = @Schema(implementation = ApiResponse.class),
+                    examples = @ExampleObject(
+                            name = "success",
+                            value = """
+                                    {
+                                      "isSuccess": true,
+                                      "code": "COMMON2000",
+                                      "message": "레포지토리 삭제가 완료됐습니다."
+                                    }
+                                    """
+                    )
+            )
+    )
+    @io.swagger.v3.oas.annotations.responses.ApiResponse(
+            responseCode = "401",
+            description = "인증 실패",
+            content = @Content(
+                    schema = @Schema(implementation = ApiResponse.class),
+                    examples = @ExampleObject(
+                            name = "unauthorized",
+                            value = """
+                                    {
+                                      "isSuccess": false,
+                                      "code": "COMMON401",
+                                      "message": "인증이 필요합니다."
+                                    }
+                                    """
+                    )
+            )
+    )
+    @io.swagger.v3.oas.annotations.responses.ApiResponse(
+            responseCode = "404",
+            description = "레포지토리를 찾을 수 없거나 접근 권한이 없음",
+            content = @Content(
+                    schema = @Schema(implementation = ApiResponse.class),
+                    examples = @ExampleObject(
+                            name = "notFound",
+                            value = """
+                                    {
+                                      "isSuccess": false,
+                                      "code": "PROJECT_REPOSITORY404",
+                                      "message": "요청한 레포지토리를 찾을 수 없습니다."
+                                    }
+                                    """
+                    )
+            )
+    )
+    ApiResponse<Void> deleteRepository(
+            @Parameter(hidden = true)
+            @AuthenticationPrincipal UserPrincipal userPrincipal,
+
+            @Parameter(description = "레포지토리 ID", required = true, example = "1")
+            @PathVariable Long repositoryId
+    );
 }
