@@ -19,4 +19,7 @@ public interface AnalysisRepository extends JpaRepository<Analysis, Long> {
 
     @EntityGraph(attributePaths = "repository")
     Optional<Analysis> findWithRepositoryByAnalysisId(Long analysisId);
+
+    @EntityGraph(attributePaths = {"repository", "repository.user"})
+    Optional<Analysis> findWithRepositoryAndUserByAnalysisId(Long analysisId);
 }

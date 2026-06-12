@@ -1,6 +1,7 @@
 package SeCause.SeCause_be.domain.analysis.service;
 
 import SeCause.SeCause_be.domain.analysis.client.GithubRepositoryClient;
+import SeCause.SeCause_be.domain.analysis.dto.AnalysisRequestStatusResponse;
 import SeCause.SeCause_be.domain.analysis.dto.AnalysisRequestCreateRequest;
 import SeCause.SeCause_be.domain.analysis.dto.AnalysisRequestCreateResponse;
 import SeCause.SeCause_be.domain.analysis.dto.GithubAccountResponse;
@@ -13,6 +14,10 @@ import SeCause.SeCause_be.domain.analysis.dto.LinkableRepositoryBranchListRespon
 import SeCause.SeCause_be.domain.analysis.dto.LinkableRepositoryBranchResponse;
 import SeCause.SeCause_be.domain.analysis.dto.LinkableRepositoryListResponse;
 import SeCause.SeCause_be.domain.analysis.dto.LinkableRepositoryResponse;
+import SeCause.SeCause_be.domain.analysis.entity.Analysis;
+import SeCause.SeCause_be.domain.analysis.exception.AnalysisException;
+import SeCause.SeCause_be.domain.analysis.exception.code.AnalysisErrorCode;
+import SeCause.SeCause_be.domain.analysis.repository.AnalysisRepository;
 import SeCause.SeCause_be.domain.analysis.validator.AnalysisRequestValidator;
 import SeCause.SeCause_be.domain.user.entity.User;
 import lombok.RequiredArgsConstructor;
@@ -34,6 +39,7 @@ public class AnalysisRequestService {
     private final GithubRepositoryClient githubRepositoryClient;
     private final AnalysisRequestValidator analysisRequestValidator;
     private final AnalysisRequestPersistenceService analysisRequestPersistenceService;
+    private final AnalysisRepository analysisRepository;
 
     public LinkableGithubAccountListResponse getLinkableGithubAccounts(Long userId) {
         User user = analysisRequestValidator.validateLoginUser(userId);
@@ -105,6 +111,14 @@ public class AnalysisRequestService {
                 .toList();
 
         return LinkableRepositoryBranchListResponse.from(branches);
+    }
+
+    public AnalysisRequestStatusResponse getAnalysisRequestStatus(Long userId, Long analysisId) {
+        Analysis analysis = analysisRepository.findWithRepositoryAndUserByAnalysisId(analysisId)
+                .filter(result -> result.getRepository().getUser().getUserId().equals(userId))
+                .orElseThrow(() -> new AnalysisException(AnalysisErrorCode.ANALYSIS_RESULT_NOT_FOUND));
+
+        return AnalysisRequestStatusResponse.from(analysis);
     }
 
     //분석 요청 생성
