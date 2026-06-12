@@ -46,6 +46,12 @@ public interface ProjectRepositoryApi {
                                             "fileCount": 120,
                                             "lineCount": 3500,
                                             "languages": ["Java", "SQL"],
+                                            "issueCounts": {
+                                              "critical": 4,
+                                              "high": 16,
+                                              "medium": 40,
+                                              "low": 64
+                                            },
                                             "analysisStatus": "COMPLETED",
                                             "progressPercent": 100,
                                             "analysisRequestedAt": "2026-06-12T20:50:00",

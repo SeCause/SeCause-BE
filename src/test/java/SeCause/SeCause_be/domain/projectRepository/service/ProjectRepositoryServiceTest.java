@@ -3,6 +3,7 @@ package SeCause.SeCause_be.domain.projectRepository.service;
 import SeCause.SeCause_be.domain.analysis.entity.AnalysisStatus;
 import SeCause.SeCause_be.domain.projectRepository.dto.RepositoryDashboardResponse;
 import SeCause.SeCause_be.domain.projectRepository.dto.RepositoryListResponse;
+import SeCause.SeCause_be.domain.projectRepository.dto.RepositorySeverityCountResponse;
 import SeCause.SeCause_be.domain.projectRepository.dto.RepositorySummaryResponse;
 import SeCause.SeCause_be.domain.projectRepository.repository.ProjectRepositoryRepository;
 import SeCause.SeCause_be.domain.projectRepository.repository.RepositoryDashboardQueryResult;
@@ -49,6 +50,7 @@ class ProjectRepositoryServiceTest {
                 120,
                 3500L,
                 List.of("Java", "SQL"),
+                new RepositorySeverityCountResponse(4, 16, 40, 64),
                 AnalysisStatus.COMPLETED,
                 100,
                 LocalDateTime.of(2026, 6, 12, 20, 50),

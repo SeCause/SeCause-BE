@@ -2,6 +2,7 @@ package SeCause.SeCause_be.domain.projectRepository.repository;
 
 import SeCause.SeCause_be.domain.analysis.entity.QAnalysis;
 import SeCause.SeCause_be.domain.analysis.entity.QAnalysisResult;
+import SeCause.SeCause_be.domain.projectRepository.dto.RepositorySeverityCountResponse;
 import SeCause.SeCause_be.domain.projectRepository.dto.RepositorySummaryResponse;
 import SeCause.SeCause_be.domain.projectRepository.entity.QProjectRepository;
 import SeCause.SeCause_be.domain.projectRepository.entity.QRepositoryFile;
@@ -61,13 +62,14 @@ public class ProjectRepositoryRepositoryImpl implements ProjectRepositoryReposit
                 .fetch();
 
         Map<Long, List<String>> languagesByRepository = findLanguagesByRepository(
-                repositories.stream()
-                        .map(tuple -> tuple.get(projectRepository.repositoryId))
-                        .toList()
+                extractRepositoryIds(repositories)
+        );
+        Map<Long, Map<Severity, Long>> issueCountsByRepository = findIssueCountsByRepository(
+                extractRepositoryIds(repositories)
         );
 
         return repositories.stream()
-                .map(tuple -> toSummary(tuple, languagesByRepository))
+                .map(tuple -> toSummary(tuple, languagesByRepository, issueCountsByRepository))
                 .toList();
     }
 
@@ -181,6 +183,38 @@ public class ProjectRepositoryRepositoryImpl implements ProjectRepositoryReposit
         return languagesByRepository;
     }
 
+    private Map<Long, Map<Severity, Long>> findIssueCountsByRepository(List<Long> repositoryIds) {
+        if (repositoryIds.isEmpty()) {
+            return Collections.emptyMap();
+        }
+
+        Map<Long, Map<Severity, Long>> issueCountsByRepository = new LinkedHashMap<>();
+
+        queryFactory
+                .select(
+                        analysis.repository.repositoryId,
+                        vulnerability.severity,
+                        issueCount
+                )
+                .from(analysisResult)
+                .join(analysisResult.vulnerability, vulnerability)
+                .join(vulnerability.analysis, analysis)
+                .where(analysis.repository.repositoryId.in(repositoryIds))
+                .groupBy(analysis.repository.repositoryId, vulnerability.severity)
+                .fetch()
+                .forEach(tuple -> issueCountsByRepository
+                        .computeIfAbsent(
+                                tuple.get(analysis.repository.repositoryId),
+                                ignored -> new EnumMap<>(Severity.class)
+                        )
+                        .put(
+                                tuple.get(vulnerability.severity),
+                                valueOrZero(tuple.get(issueCount))
+                        ));
+
+        return issueCountsByRepository;
+    }
+
     private List<RepositoryDashboardQueryResult.IssueTypeCount> findIssueCountsByType(Long repositoryId) {
         return queryFactory
                 .select(
@@ -229,9 +263,14 @@ public class ProjectRepositoryRepositoryImpl implements ProjectRepositoryReposit
 
     private RepositorySummaryResponse toSummary(
             Tuple tuple,
-            Map<Long, List<String>> languagesByRepository
+            Map<Long, List<String>> languagesByRepository,
+            Map<Long, Map<Severity, Long>> issueCountsByRepository
     ) {
         Long repositoryId = tuple.get(projectRepository.repositoryId);
+        Map<Severity, Long> issueCounts = issueCountsByRepository.getOrDefault(
+                repositoryId,
+                Collections.emptyMap()
+        );
 
         return RepositorySummaryResponse.of(
                 repositoryId,
@@ -241,11 +280,23 @@ public class ProjectRepositoryRepositoryImpl implements ProjectRepositoryReposit
                 valueOrZero(tuple.get(projectRepository.totalFiles)),
                 valueOrZero(tuple.get(projectRepository.lineCount)),
                 languagesByRepository.getOrDefault(repositoryId, List.of()),
+                new RepositorySeverityCountResponse(
+                        issueCounts.getOrDefault(Severity.CRITICAL, 0L),
+                        issueCounts.getOrDefault(Severity.HIGH, 0L),
+                        issueCounts.getOrDefault(Severity.MEDIUM, 0L),
+                        issueCounts.getOrDefault(Severity.LOW, 0L)
+                ),
                 tuple.get(analysis.analysisStatus),
                 valueOrZero(tuple.get(analysis.progressPercent)),
                 tuple.get(analysis.createdAt),
                 tuple.get(analysis.completedAt)
         );
+    }
+
+    private List<Long> extractRepositoryIds(List<Tuple> repositories) {
+        return repositories.stream()
+                .map(tuple -> tuple.get(projectRepository.repositoryId))
+                .toList();
     }
 
     private int valueOrZero(Integer value) {
