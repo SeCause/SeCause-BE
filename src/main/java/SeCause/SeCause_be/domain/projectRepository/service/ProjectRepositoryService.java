@@ -1,10 +1,24 @@
 package SeCause.SeCause_be.domain.projectRepository.service;
 
+import SeCause.SeCause_be.domain.projectRepository.dto.RepositoryAnalysisResponse;
+import SeCause.SeCause_be.domain.projectRepository.dto.RepositoryCodeDetailsResponse;
+import SeCause.SeCause_be.domain.projectRepository.dto.RepositoryDashboardResponse;
+import SeCause.SeCause_be.domain.projectRepository.dto.RepositoryDashboardSummaryResponse;
+import SeCause.SeCause_be.domain.projectRepository.dto.RepositoryIssueTypeCountResponse;
 import SeCause.SeCause_be.domain.projectRepository.dto.RepositoryListResponse;
+import SeCause.SeCause_be.domain.projectRepository.dto.RepositorySeverityBreakdownResponse;
+import SeCause.SeCause_be.domain.projectRepository.exception.ProjectRepositoryException;
+import SeCause.SeCause_be.domain.projectRepository.exception.code.ProjectRepositoryErrorCode;
 import SeCause.SeCause_be.domain.projectRepository.repository.ProjectRepositoryRepository;
+import SeCause.SeCause_be.domain.projectRepository.repository.RepositoryDashboardQueryResult;
+import SeCause.SeCause_be.domain.projectRepository.validator.ProjectRepositoryValidator;
+import SeCause.SeCause_be.domain.vulnerability.entity.Severity;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.util.Arrays;
+import java.util.Map;
 
 @Service
 @RequiredArgsConstructor
@@ -12,6 +26,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class ProjectRepositoryService {
 
     private final ProjectRepositoryRepository projectRepositoryRepository;
+    private final ProjectRepositoryValidator projectRepositoryValidator;
 
     /**
      * 로그인 사용자가 분석한 레포지토리 목록을 조회합니다.
@@ -20,5 +35,81 @@ public class ProjectRepositoryService {
         return RepositoryListResponse.from(
                 projectRepositoryRepository.findRepositorySummaries(userId, accountName, keyword)
         );
+    }
+
+    /**
+     * 로그인 사용자가 소유한 레포지토리의 분석 대시보드를 조회합니다.
+     */
+    public RepositoryDashboardResponse getRepositoryDashboard(Long repositoryId, Long userId) {
+        projectRepositoryValidator.validateRepositoryOwner(repositoryId, userId);
+
+        RepositoryDashboardQueryResult result = projectRepositoryRepository
+                .findRepositoryDashboard(repositoryId, userId)
+                .orElseThrow(() -> new ProjectRepositoryException(
+                        ProjectRepositoryErrorCode.PROJECT_REPOSITORY_NOT_FOUND
+                ));
+
+        Map<Severity, Long> countsBySeverity = result.issueCountsBySeverity();
+        long totalIssues = countsBySeverity.values().stream()
+                .mapToLong(Long::longValue)
+                .sum();
+
+        return new RepositoryDashboardResponse(
+                result.repositoryId(),
+                result.owner(),
+                result.name(),
+                result.owner() + "/" + result.name(),
+                result.description(),
+                result.githubUrl(),
+                new RepositoryCodeDetailsResponse(
+                        result.branch(),
+                        result.fileCount(),
+                        result.lineCount(),
+                        result.languages()
+                ),
+                new RepositoryAnalysisResponse(
+                        result.analysisStatus(),
+                        result.progressPercent(),
+                        result.analysisRequestedAt(),
+                        result.completedAt(),
+                        result.failureReason()
+                ),
+                new RepositoryDashboardSummaryResponse(
+                        totalIssues,
+                        issueCount(countsBySeverity, Severity.CRITICAL),
+                        issueCount(countsBySeverity, Severity.HIGH),
+                        issueCount(countsBySeverity, Severity.MEDIUM),
+                        issueCount(countsBySeverity, Severity.LOW)
+                ),
+                result.issuesByType().stream()
+                        .map(issue -> new RepositoryIssueTypeCountResponse(
+                                issue.type(),
+                                issue.severity(),
+                                issue.count()
+                        ))
+                        .toList(),
+                Arrays.stream(Severity.values())
+                        .map(severity -> {
+                            long count = issueCount(countsBySeverity, severity);
+                            return new RepositorySeverityBreakdownResponse(
+                                    severity,
+                                    count,
+                                    calculatePercentage(count, totalIssues)
+                            );
+                        })
+                        .toList()
+        );
+    }
+
+    private long issueCount(Map<Severity, Long> countsBySeverity, Severity severity) {
+        return countsBySeverity.getOrDefault(severity, 0L);
+    }
+
+    private double calculatePercentage(long count, long totalIssues) {
+        if (totalIssues == 0) {
+            return 0.0;
+        }
+
+        return Math.round(count * 10_000.0 / totalIssues) / 100.0;
     }
 }

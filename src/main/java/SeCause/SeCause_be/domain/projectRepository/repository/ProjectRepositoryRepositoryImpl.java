@@ -1,27 +1,37 @@
 package SeCause.SeCause_be.domain.projectRepository.repository;
 
 import SeCause.SeCause_be.domain.analysis.entity.QAnalysis;
+import SeCause.SeCause_be.domain.analysis.entity.QAnalysisResult;
 import SeCause.SeCause_be.domain.projectRepository.dto.RepositorySummaryResponse;
 import SeCause.SeCause_be.domain.projectRepository.entity.QProjectRepository;
 import SeCause.SeCause_be.domain.projectRepository.entity.QRepositoryFile;
+import SeCause.SeCause_be.domain.vulnerability.entity.QVulnerability;
+import SeCause.SeCause_be.domain.vulnerability.entity.Severity;
 import com.querydsl.core.BooleanBuilder;
 import com.querydsl.core.Tuple;
+import com.querydsl.core.types.dsl.BooleanExpression;
+import com.querydsl.core.types.dsl.NumberExpression;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import lombok.RequiredArgsConstructor;
 import org.springframework.util.StringUtils;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.EnumMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 @RequiredArgsConstructor
 public class ProjectRepositoryRepositoryImpl implements ProjectRepositoryRepositoryCustom {
 
     private static final QProjectRepository projectRepository = QProjectRepository.projectRepository;
     private static final QAnalysis analysis = QAnalysis.analysis;
+    private static final QAnalysisResult analysisResult = QAnalysisResult.analysisResult;
     private static final QRepositoryFile repositoryFile = QRepositoryFile.repositoryFile;
+    private static final QVulnerability vulnerability = QVulnerability.vulnerability;
+    private static final NumberExpression<Long> issueCount = analysisResult.count();
 
     private final JPAQueryFactory queryFactory;
 
@@ -61,6 +71,59 @@ public class ProjectRepositoryRepositoryImpl implements ProjectRepositoryReposit
                 .toList();
     }
 
+    @Override
+    public Optional<RepositoryDashboardQueryResult> findRepositoryDashboard(
+            Long repositoryId,
+            Long userId
+    ) {
+        Tuple repository = queryFactory
+                .select(
+                        projectRepository.repositoryId,
+                        projectRepository.owner,
+                        projectRepository.title,
+                        projectRepository.description,
+                        projectRepository.githubLink,
+                        projectRepository.branch,
+                        projectRepository.totalFiles,
+                        projectRepository.lineCount,
+                        analysis.analysisStatus,
+                        analysis.progressPercent,
+                        analysis.createdAt,
+                        analysis.completedAt,
+                        analysis.failureReason
+                )
+                .from(projectRepository)
+                .join(analysis).on(analysis.repository.eq(projectRepository))
+                .where(repositoryOwnerCondition(repositoryId, userId))
+                .fetchOne();
+
+        if (repository == null) {
+            return Optional.empty();
+        }
+
+        List<String> languages = findLanguagesByRepository(List.of(repositoryId))
+                .getOrDefault(repositoryId, List.of());
+
+        return Optional.of(new RepositoryDashboardQueryResult(
+                repositoryId,
+                repository.get(projectRepository.owner),
+                repository.get(projectRepository.title),
+                repository.get(projectRepository.description),
+                repository.get(projectRepository.githubLink),
+                repository.get(projectRepository.branch),
+                valueOrZero(repository.get(projectRepository.totalFiles)),
+                valueOrZero(repository.get(projectRepository.lineCount)),
+                languages,
+                repository.get(analysis.analysisStatus),
+                valueOrZero(repository.get(analysis.progressPercent)),
+                repository.get(analysis.createdAt),
+                repository.get(analysis.completedAt),
+                repository.get(analysis.failureReason),
+                findIssueCountsByType(repositoryId),
+                findIssueCountsBySeverity(repositoryId)
+        ));
+    }
+
     private BooleanBuilder repositoryCondition(Long userId, String accountName, String keyword) {
         BooleanBuilder condition = new BooleanBuilder()
                 .and(projectRepository.user.userId.eq(userId))
@@ -79,6 +142,12 @@ public class ProjectRepositoryRepositoryImpl implements ProjectRepositoryReposit
         }
 
         return condition;
+    }
+
+    private BooleanExpression repositoryOwnerCondition(Long repositoryId, Long userId) {
+        return projectRepository.repositoryId.eq(repositoryId)
+                .and(projectRepository.user.userId.eq(userId))
+                .and(projectRepository.deleted.isFalse());
     }
 
     private Map<Long, List<String>> findLanguagesByRepository(List<Long> repositoryIds) {
@@ -110,6 +179,52 @@ public class ProjectRepositoryRepositoryImpl implements ProjectRepositoryReposit
                         .add(tuple.get(repositoryFile.language)));
 
         return languagesByRepository;
+    }
+
+    private List<RepositoryDashboardQueryResult.IssueTypeCount> findIssueCountsByType(Long repositoryId) {
+        return queryFactory
+                .select(
+                        vulnerability.vulnerabilityType,
+                        vulnerability.severity,
+                        issueCount
+                )
+                .from(analysisResult)
+                .join(analysisResult.vulnerability, vulnerability)
+                .join(vulnerability.analysis, analysis)
+                .where(analysis.repository.repositoryId.eq(repositoryId))
+                .groupBy(vulnerability.vulnerabilityType, vulnerability.severity)
+                .orderBy(
+                        vulnerability.severity.asc(),
+                        issueCount.desc(),
+                        vulnerability.vulnerabilityType.asc()
+                )
+                .fetch()
+                .stream()
+                .map(tuple -> new RepositoryDashboardQueryResult.IssueTypeCount(
+                        tuple.get(vulnerability.vulnerabilityType),
+                        tuple.get(vulnerability.severity),
+                        valueOrZero(tuple.get(issueCount))
+                ))
+                .toList();
+    }
+
+    private Map<Severity, Long> findIssueCountsBySeverity(Long repositoryId) {
+        Map<Severity, Long> countsBySeverity = new EnumMap<>(Severity.class);
+
+        queryFactory
+                .select(vulnerability.severity, issueCount)
+                .from(analysisResult)
+                .join(analysisResult.vulnerability, vulnerability)
+                .join(vulnerability.analysis, analysis)
+                .where(analysis.repository.repositoryId.eq(repositoryId))
+                .groupBy(vulnerability.severity)
+                .fetch()
+                .forEach(tuple -> countsBySeverity.put(
+                        tuple.get(vulnerability.severity),
+                        valueOrZero(tuple.get(issueCount))
+                ));
+
+        return countsBySeverity;
     }
 
     private RepositorySummaryResponse toSummary(
