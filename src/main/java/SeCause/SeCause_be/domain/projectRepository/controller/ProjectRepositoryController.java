@@ -1,5 +1,6 @@
 package SeCause.SeCause_be.domain.projectRepository.controller;
 
+import SeCause.SeCause_be.domain.projectRepository.dto.RepositoryDashboardResponse;
 import SeCause.SeCause_be.domain.projectRepository.dto.RepositoryListResponse;
 import SeCause.SeCause_be.domain.projectRepository.service.ProjectRepositoryService;
 import SeCause.SeCause_be.global.apiPayload.response.ApiResponse;
@@ -7,6 +8,7 @@ import SeCause.SeCause_be.global.security.UserPrincipal;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -32,5 +34,19 @@ public class ProjectRepositoryController implements ProjectRepositoryApi {
         );
 
         return ApiResponse.onSuccess("레포지토리 목록 조회가 완료됐습니다.", response);
+    }
+
+    @GetMapping("/{repositoryId}")
+    @Override
+    public ApiResponse<RepositoryDashboardResponse> getRepositoryDashboard(
+            @AuthenticationPrincipal UserPrincipal userPrincipal,
+            @PathVariable Long repositoryId
+    ) {
+        RepositoryDashboardResponse response = projectRepositoryService.getRepositoryDashboard(
+                repositoryId,
+                userPrincipal.userId()
+        );
+
+        return ApiResponse.onSuccess("레포지토리 대시보드 조회가 완료됐습니다.", response);
     }
 }
