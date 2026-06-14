@@ -55,7 +55,7 @@ class ProjectRepositoryControllerTest {
                         LocalDateTime.of(2026, 6, 12, 20, 57),
                         null
                 ),
-                new RepositoryDashboardSummaryResponse(0, 0, 0, 0, 0),
+                new RepositoryDashboardSummaryResponse(0),
                 List.of(),
                 List.of()
         );

@@ -35,11 +35,13 @@ public record RepositorySummaryResponse(
             LocalDateTime analysisRequestedAt,
             LocalDateTime completedAt
     ) {
+        String fullName = createFullName(owner, name);
+
         return new RepositorySummaryResponse(
                 repositoryId,
                 owner,
                 name,
-                owner + "/" + name,
+                fullName,
                 branch,
                 fileCount,
                 lineCount,
@@ -50,5 +52,15 @@ public record RepositorySummaryResponse(
                 analysisRequestedAt,
                 completedAt
         );
+    }
+
+    private static String createFullName(String owner, String name) {
+        if (owner == null || owner.isBlank()) {
+            return name == null ? "" : name;
+        }
+        if (name == null || name.isBlank()) {
+            return owner;
+        }
+        return owner + "/" + name;
     }
 }

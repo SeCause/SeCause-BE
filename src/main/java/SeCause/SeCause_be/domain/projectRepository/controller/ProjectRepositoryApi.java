@@ -130,11 +130,7 @@ public interface ProjectRepositoryApi {
                                           "failureReason": null
                                         },
                                         "summary": {
-                                          "totalIssues": 124,
-                                          "criticalIssues": 4,
-                                          "highIssues": 16,
-                                          "mediumIssues": 40,
-                                          "lowIssues": 64
+                                          "totalIssues": 124
                                         },
                                         "issuesByType": [
                                           {

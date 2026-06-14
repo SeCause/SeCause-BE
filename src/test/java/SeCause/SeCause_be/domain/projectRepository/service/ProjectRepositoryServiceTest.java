@@ -10,7 +10,6 @@ import SeCause.SeCause_be.domain.projectRepository.exception.ProjectRepositoryEx
 import SeCause.SeCause_be.domain.projectRepository.exception.code.ProjectRepositoryErrorCode;
 import SeCause.SeCause_be.domain.projectRepository.repository.ProjectRepositoryRepository;
 import SeCause.SeCause_be.domain.projectRepository.repository.RepositoryDashboardQueryResult;
-import SeCause.SeCause_be.domain.projectRepository.validator.ProjectRepositoryValidator;
 import SeCause.SeCause_be.domain.vulnerability.entity.Severity;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -34,9 +33,6 @@ class ProjectRepositoryServiceTest {
 
     @Mock
     private ProjectRepositoryRepository projectRepositoryRepository;
-
-    @Mock
-    private ProjectRepositoryValidator projectRepositoryValidator;
 
     @InjectMocks
     private ProjectRepositoryService projectRepositoryService;
@@ -72,6 +68,35 @@ class ProjectRepositoryServiceTest {
         assertThat(response.repositories()).containsExactly(summary);
         assertThat(response.repositories().getFirst().fullName()).isEqualTo("secause/SeCause-BE");
         verify(projectRepositoryRepository).findRepositorySummaries(userId, accountName, keyword);
+    }
+
+    @Test
+    void getRepositoriesBuildsFullNameWithoutNullText() {
+        Long userId = 1L;
+        RepositorySummaryResponse summary = RepositorySummaryResponse.of(
+                10L,
+                null,
+                "SeCause-BE",
+                "develop",
+                120,
+                3500L,
+                List.of("Java"),
+                new RepositorySeverityCountResponse(0, 0, 0, 0),
+                AnalysisStatus.COMPLETED,
+                100,
+                LocalDateTime.of(2026, 6, 12, 20, 50),
+                LocalDateTime.of(2026, 6, 12, 20, 57)
+        );
+        given(projectRepositoryRepository.findRepositorySummaries(userId, null, null))
+                .willReturn(List.of(summary));
+
+        RepositoryListResponse response = projectRepositoryService.getRepositories(
+                userId,
+                null,
+                null
+        );
+
+        assertThat(response.repositories().getFirst().fullName()).isEqualTo("SeCause-BE");
     }
 
     @Test
@@ -117,7 +142,6 @@ class ProjectRepositoryServiceTest {
 
         assertThat(response.fullName()).isEqualTo("secause/SeCause-BE");
         assertThat(response.summary().totalIssues()).isEqualTo(124);
-        assertThat(response.summary().criticalIssues()).isEqualTo(4);
         assertThat(response.severityBreakdown())
                 .extracting(breakdown -> breakdown.severity())
                 .containsExactly(
@@ -127,7 +151,40 @@ class ProjectRepositoryServiceTest {
                         Severity.LOW
                 );
         assertThat(response.severityBreakdown().getFirst().percentage()).isEqualTo(3.23);
-        verify(projectRepositoryValidator).validateRepositoryOwner(repositoryId, userId);
+        verify(projectRepositoryRepository).findRepositoryDashboard(repositoryId, userId);
+    }
+
+    @Test
+    void getRepositoryDashboardBuildsFullNameWithoutNullText() {
+        Long repositoryId = 10L;
+        Long userId = 1L;
+        RepositoryDashboardQueryResult queryResult = new RepositoryDashboardQueryResult(
+                repositoryId,
+                "secause",
+                null,
+                null,
+                "https://github.com/secause/SeCause-BE",
+                "develop",
+                0,
+                0L,
+                List.of(),
+                AnalysisStatus.COMPLETED,
+                100,
+                LocalDateTime.of(2026, 6, 12, 20, 50),
+                LocalDateTime.of(2026, 6, 12, 20, 57),
+                null,
+                List.of(),
+                Map.of()
+        );
+        given(projectRepositoryRepository.findRepositoryDashboard(repositoryId, userId))
+                .willReturn(Optional.of(queryResult));
+
+        RepositoryDashboardResponse response = projectRepositoryService.getRepositoryDashboard(
+                repositoryId,
+                userId
+        );
+
+        assertThat(response.fullName()).isEqualTo("secause");
     }
 
     @Test

@@ -12,7 +12,6 @@ import SeCause.SeCause_be.domain.projectRepository.exception.ProjectRepositoryEx
 import SeCause.SeCause_be.domain.projectRepository.exception.code.ProjectRepositoryErrorCode;
 import SeCause.SeCause_be.domain.projectRepository.repository.ProjectRepositoryRepository;
 import SeCause.SeCause_be.domain.projectRepository.repository.RepositoryDashboardQueryResult;
-import SeCause.SeCause_be.domain.projectRepository.validator.ProjectRepositoryValidator;
 import SeCause.SeCause_be.domain.vulnerability.entity.Severity;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -27,7 +26,6 @@ import java.util.Map;
 public class ProjectRepositoryService {
 
     private final ProjectRepositoryRepository projectRepositoryRepository;
-    private final ProjectRepositoryValidator projectRepositoryValidator;
 
     /**
      * 로그인 사용자가 분석한 레포지토리 목록을 조회합니다.
@@ -42,8 +40,6 @@ public class ProjectRepositoryService {
      * 로그인 사용자가 소유한 레포지토리의 분석 대시보드를 조회합니다.
      */
     public RepositoryDashboardResponse getRepositoryDashboard(Long repositoryId, Long userId) {
-        projectRepositoryValidator.validateRepositoryOwner(repositoryId, userId);
-
         RepositoryDashboardQueryResult result = projectRepositoryRepository
                 .findRepositoryDashboard(repositoryId, userId)
                 .orElseThrow(() -> new ProjectRepositoryException(
@@ -59,7 +55,7 @@ public class ProjectRepositoryService {
                 result.repositoryId(),
                 result.owner(),
                 result.name(),
-                result.owner() + "/" + result.name(),
+                createFullName(result.owner(), result.name()),
                 result.description(),
                 result.githubUrl(),
                 new RepositoryCodeDetailsResponse(
@@ -76,11 +72,7 @@ public class ProjectRepositoryService {
                         result.failureReason()
                 ),
                 new RepositoryDashboardSummaryResponse(
-                        totalIssues,
-                        issueCount(countsBySeverity, Severity.CRITICAL),
-                        issueCount(countsBySeverity, Severity.HIGH),
-                        issueCount(countsBySeverity, Severity.MEDIUM),
-                        issueCount(countsBySeverity, Severity.LOW)
+                        totalIssues
                 ),
                 result.issuesByType().stream()
                         .map(issue -> new RepositoryIssueTypeCountResponse(
@@ -126,5 +118,15 @@ public class ProjectRepositoryService {
         }
 
         return Math.round(count * 10_000.0 / totalIssues) / 100.0;
+    }
+
+    private String createFullName(String owner, String name) {
+        if (owner == null || owner.isBlank()) {
+            return name == null ? "" : name;
+        }
+        if (name == null || name.isBlank()) {
+            return owner;
+        }
+        return owner + "/" + name;
     }
 }
