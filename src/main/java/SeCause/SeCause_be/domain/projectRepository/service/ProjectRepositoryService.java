@@ -18,6 +18,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Arrays;
+import java.util.List;
 import java.util.Map;
 
 @Service
@@ -58,39 +59,11 @@ public class ProjectRepositoryService {
                 createFullName(result.owner(), result.name()),
                 result.description(),
                 result.githubUrl(),
-                new RepositoryCodeDetailsResponse(
-                        result.branch(),
-                        result.fileCount(),
-                        result.lineCount(),
-                        result.languages()
-                ),
-                new RepositoryAnalysisResponse(
-                        result.analysisStatus(),
-                        result.progressPercent(),
-                        result.analysisRequestedAt(),
-                        result.completedAt(),
-                        result.failureReason()
-                ),
-                new RepositoryDashboardSummaryResponse(
-                        totalIssues
-                ),
-                result.issuesByType().stream()
-                        .map(issue -> new RepositoryIssueTypeCountResponse(
-                                issue.type(),
-                                issue.severity(),
-                                issue.count()
-                        ))
-                        .toList(),
-                Arrays.stream(Severity.values())
-                        .map(severity -> {
-                            long count = issueCount(countsBySeverity, severity);
-                            return new RepositorySeverityBreakdownResponse(
-                                    severity,
-                                    count,
-                                    calculatePercentage(count, totalIssues)
-                            );
-                        })
-                        .toList()
+                createCodeDetails(result),
+                createAnalysis(result),
+                createSummary(totalIssues),
+                createIssuesByType(result),
+                createSeverityBreakdown(countsBySeverity, totalIssues)
         );
     }
 
@@ -106,6 +79,59 @@ public class ProjectRepositoryService {
                 ));
 
         repository.delete();
+    }
+
+    private RepositoryCodeDetailsResponse createCodeDetails(
+            RepositoryDashboardQueryResult result
+    ) {
+        return new RepositoryCodeDetailsResponse(
+                result.branch(),
+                result.fileCount(),
+                result.lineCount(),
+                result.languages()
+        );
+    }
+
+    private RepositoryAnalysisResponse createAnalysis(RepositoryDashboardQueryResult result) {
+        return new RepositoryAnalysisResponse(
+                result.analysisStatus(),
+                result.progressPercent(),
+                result.analysisRequestedAt(),
+                result.completedAt(),
+                result.failureReason()
+        );
+    }
+
+    private RepositoryDashboardSummaryResponse createSummary(long totalIssues) {
+        return new RepositoryDashboardSummaryResponse(totalIssues);
+    }
+
+    private List<RepositoryIssueTypeCountResponse> createIssuesByType(
+            RepositoryDashboardQueryResult result
+    ) {
+        return result.issuesByType().stream()
+                .map(issue -> new RepositoryIssueTypeCountResponse(
+                        issue.type(),
+                        issue.severity(),
+                        issue.count()
+                ))
+                .toList();
+    }
+
+    private List<RepositorySeverityBreakdownResponse> createSeverityBreakdown(
+            Map<Severity, Long> countsBySeverity,
+            long totalIssues
+    ) {
+        return Arrays.stream(Severity.values())
+                .map(severity -> {
+                    long count = issueCount(countsBySeverity, severity);
+                    return new RepositorySeverityBreakdownResponse(
+                            severity,
+                            count,
+                            calculatePercentage(count, totalIssues)
+                    );
+                })
+                .toList();
     }
 
     private long issueCount(Map<Severity, Long> countsBySeverity, Severity severity) {
