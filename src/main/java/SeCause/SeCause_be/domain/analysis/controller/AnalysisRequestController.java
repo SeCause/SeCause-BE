@@ -2,6 +2,7 @@ package SeCause.SeCause_be.domain.analysis.controller;
 
 import SeCause.SeCause_be.domain.analysis.dto.AnalysisRequestCreateRequest;
 import SeCause.SeCause_be.domain.analysis.dto.AnalysisRequestCreateResponse;
+import SeCause.SeCause_be.domain.analysis.dto.AnalysisRequestStatusResponse;
 import SeCause.SeCause_be.domain.analysis.dto.LinkableGithubAccountListResponse;
 import SeCause.SeCause_be.domain.analysis.dto.LinkableRepositoryBranchListResponse;
 import SeCause.SeCause_be.domain.analysis.dto.LinkableRepositoryListResponse;
@@ -85,5 +86,19 @@ public class AnalysisRequestController implements AnalysisRequestApi {
         );
 
         return ApiResponse.onSuccess("브랜치 목록 조회가 완료됐습니다.", response);
+    }
+
+    @GetMapping("/{analysisId}/status")
+    @Override
+    public ApiResponse<AnalysisRequestStatusResponse> getAnalysisRequestStatus(
+            @AuthenticationPrincipal UserPrincipal userPrincipal,
+            @PathVariable Long analysisId
+    ) {
+        AnalysisRequestStatusResponse response = analysisRequestService.getAnalysisRequestStatus(
+                userPrincipal.userId(),
+                analysisId
+        );
+
+        return ApiResponse.onSuccess("분석 상태 조회가 완료됐습니다.", response);
     }
 }

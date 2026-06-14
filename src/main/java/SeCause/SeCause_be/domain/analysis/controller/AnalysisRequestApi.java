@@ -2,6 +2,7 @@ package SeCause.SeCause_be.domain.analysis.controller;
 
 import SeCause.SeCause_be.domain.analysis.dto.AnalysisRequestCreateRequest;
 import SeCause.SeCause_be.domain.analysis.dto.AnalysisRequestCreateResponse;
+import SeCause.SeCause_be.domain.analysis.dto.AnalysisRequestStatusResponse;
 import SeCause.SeCause_be.domain.analysis.dto.LinkableGithubAccountListResponse;
 import SeCause.SeCause_be.domain.analysis.dto.LinkableRepositoryBranchListResponse;
 import SeCause.SeCause_be.domain.analysis.dto.LinkableRepositoryListResponse;
@@ -454,5 +455,81 @@ public interface AnalysisRequestApi {
             @PathVariable String ownerName,
 
             @PathVariable String repositoryName
+    );
+
+    @Operation(
+            summary = "분석 상태 조회",
+            description = "분석 요청 생성 시 반환받은 analysisId로 분석 진행 상태, 진행률, 실패 사유를 조회합니다.",
+            security = @SecurityRequirement(name = "Bearer Authentication"),
+            parameters = @Parameter(
+                    name = "analysisId",
+                    description = "분석 요청 ID",
+                    required = true,
+                    in = ParameterIn.PATH,
+                    example = "1"
+            )
+    )
+    @io.swagger.v3.oas.annotations.responses.ApiResponse(
+            responseCode = "200",
+            description = "분석 상태 조회 성공",
+            content = @Content(
+                    schema = @Schema(implementation = ApiResponse.class),
+                    examples = @ExampleObject(
+                            name = "success",
+                            value = """
+                                    {
+                                      "isSuccess": true,
+                                      "code": "COMMON2000",
+                                      "message": "분석 상태 조회가 완료됐습니다.",
+                                      "result": {
+                                        "analysisId": 1,
+                                        "analysisStatus": "IN_PROGRESS",
+                                        "progressPercent": 45,
+                                        "failureReason": null
+                                      }
+                                    }
+                                    """
+                    )
+            )
+    )
+    @io.swagger.v3.oas.annotations.responses.ApiResponse(
+            responseCode = "401",
+            description = "인증 실패",
+            content = @Content(
+                    schema = @Schema(implementation = ApiResponse.class),
+                    examples = @ExampleObject(
+                            name = "unauthorized",
+                            value = """
+                                    {
+                                      "isSuccess": false,
+                                      "code": "COMMON401",
+                                      "message": "인증이 필요합니다."
+                                    }
+                                    """
+                    )
+            )
+    )
+    @io.swagger.v3.oas.annotations.responses.ApiResponse(
+            responseCode = "404",
+            description = "분석 결과를 찾을 수 없음",
+            content = @Content(
+                    schema = @Schema(implementation = ApiResponse.class),
+                    examples = @ExampleObject(
+                            name = "analysisNotFound",
+                            value = """
+                                    {
+                                      "isSuccess": false,
+                                      "code": "ANALYSIS_RESULT4041",
+                                      "message": "요청한 분석 결과를 찾을 수 없습니다."
+                                    }
+                                    """
+                    )
+            )
+    )
+    ApiResponse<AnalysisRequestStatusResponse> getAnalysisRequestStatus(
+            @Parameter(hidden = true)
+            @AuthenticationPrincipal UserPrincipal userPrincipal,
+
+            @PathVariable Long analysisId
     );
 }
