@@ -1,7 +1,7 @@
 package SeCause.SeCause_be.domain.analysis.controller;
 
-import SeCause.SeCause_be.domain.analysis.dto.AnalysisFailureCallbackRequest;
-import SeCause.SeCause_be.domain.analysis.dto.AnalysisResultCallbackRequest;
+import SeCause.SeCause_be.domain.analysis.dto.AnalysisCallbackFailureRequest;
+import SeCause.SeCause_be.domain.analysis.dto.AnalysisCallbackSuccessRequest;
 import SeCause.SeCause_be.domain.analysis.service.AnalysisCallbackService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -58,7 +58,7 @@ class AnalysisCallbackControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.isSuccess").value(true));
 
-        verify(service).saveResult(eq(1L), org.mockito.ArgumentMatchers.any(AnalysisResultCallbackRequest.class));
+        verify(service).handleSuccess(eq(1L), org.mockito.ArgumentMatchers.any(AnalysisCallbackSuccessRequest.class));
     }
 
     @Test
@@ -69,6 +69,6 @@ class AnalysisCallbackControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.isSuccess").value(true));
 
-        verify(service).saveFailure(eq(1L), org.mockito.ArgumentMatchers.any(AnalysisFailureCallbackRequest.class));
+        verify(service).handleFailure(eq(1L), org.mockito.ArgumentMatchers.any(AnalysisCallbackFailureRequest.class));
     }
 }

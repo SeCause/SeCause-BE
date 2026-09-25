@@ -1,36 +1,26 @@
 package SeCause.SeCause_be.domain.analysis.service;
 
-import SeCause.SeCause_be.domain.analysis.dto.AnalysisFailureCallbackRequest;
-import SeCause.SeCause_be.domain.analysis.dto.AnalysisResultCallbackRequest;
+import SeCause.SeCause_be.domain.analysis.dto.AnalysisCallbackFailureRequest;
+import SeCause.SeCause_be.domain.analysis.dto.AnalysisCallbackSuccessRequest;
 import SeCause.SeCause_be.domain.analysis.entity.Analysis;
-import SeCause.SeCause_be.domain.analysis.entity.AnalysisResult;
 import SeCause.SeCause_be.domain.analysis.entity.AnalysisStatus;
 import SeCause.SeCause_be.domain.analysis.repository.AnalysisRepository;
-import SeCause.SeCause_be.domain.analysis.repository.AnalysisResultRepository;
 import SeCause.SeCause_be.domain.projectRepository.entity.ProjectRepository;
-import SeCause.SeCause_be.domain.projectRepository.repository.RepositoryFileRepository;
-import SeCause.SeCause_be.domain.security.repository.SecurityReferenceRepository;
 import SeCause.SeCause_be.domain.user.entity.User;
-import SeCause.SeCause_be.domain.vulnerability.entity.Severity;
-import SeCause.SeCause_be.domain.vulnerability.entity.Vulnerability;
-import SeCause.SeCause_be.domain.vulnerability.repository.VulnerabilityRepository;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.test.util.ReflectionTestUtils;
 
-import java.util.List;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyList;
-import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -62,51 +52,28 @@ class AnalysisCallbackServiceTest {
     @Mock
     private AnalysisRepository analysisRepository;
     @Mock
-    private RepositoryFileRepository repositoryFileRepository;
-    @Mock
-    private VulnerabilityRepository vulnerabilityRepository;
-    @Mock
-    private AnalysisResultRepository analysisResultRepository;
-    @Mock
-    private SecurityReferenceRepository securityReferenceRepository;
+    private AnalysisFindingPersistenceService analysisFindingPersistenceService;
 
     private final ObjectMapper objectMapper = new ObjectMapper();
     private AnalysisCallbackService service;
 
     @BeforeEach
     void setUp() {
-        service = new AnalysisCallbackService(
-                analysisRepository,
-                repositoryFileRepository,
-                vulnerabilityRepository,
-                analysisResultRepository,
-                securityReferenceRepository
-        );
+        service = new AnalysisCallbackService(analysisRepository, analysisFindingPersistenceService);
     }
 
     @Test
-    void savesSuccessfulCallbackAndIgnoresDuplicate() throws Exception {
+    void handlesPayloadWithoutFailedScannersAndIgnoresDuplicate() throws Exception {
         Analysis analysis = createAnalysis();
-        AnalysisResultCallbackRequest request = objectMapper.readValue(
-                SUCCESS_JSON,
-                AnalysisResultCallbackRequest.class
-        );
+        AnalysisCallbackSuccessRequest request = objectMapper.readValue(SUCCESS_JSON, AnalysisCallbackSuccessRequest.class);
         assertThat(request.failedScanners()).isEmpty();
         when(analysisRepository.findForUpdateWithRepositoryByAnalysisId(1L)).thenReturn(Optional.of(analysis));
-        when(repositoryFileRepository.findAllByRepositoryRepositoryIdAndFilePathIn(any(), any())).thenReturn(List.of());
-        when(repositoryFileRepository.saveAll(anyList())).thenAnswer(invocation -> invocation.getArgument(0));
-        when(vulnerabilityRepository.save(any(Vulnerability.class))).thenAnswer(invocation -> invocation.getArgument(0));
-        when(securityReferenceRepository.saveAll(anyList())).thenAnswer(invocation -> invocation.getArgument(0));
+        when(analysisFindingPersistenceService.saveAll(analysis, request.findings())).thenReturn(1);
 
-        service.saveResult(1L, request);
-        service.saveResult(1L, request);
+        service.handleSuccess(1L, request);
+        service.handleSuccess(1L, request);
 
-        ArgumentCaptor<Vulnerability> vulnerabilityCaptor = ArgumentCaptor.forClass(Vulnerability.class);
-        verify(vulnerabilityRepository, times(1)).save(vulnerabilityCaptor.capture());
-        verify(analysisResultRepository, times(1)).save(any(AnalysisResult.class));
-        verify(securityReferenceRepository, times(1)).saveAll(anyList());
-        assertThat(vulnerabilityCaptor.getValue().getCweId()).isEqualTo("CWE-89");
-        assertThat(vulnerabilityCaptor.getValue().getSeverity()).isEqualTo(Severity.HIGH);
+        verify(analysisFindingPersistenceService, times(1)).saveAll(analysis, request.findings());
         assertThat(analysis.getAnalysisStatus()).isEqualTo(AnalysisStatus.COMPLETED);
         assertThat(analysis.getProgressPercent()).isEqualTo(100);
         assertThat(analysis.getCompletedAt()).isNotNull();
@@ -114,78 +81,52 @@ class AnalysisCallbackServiceTest {
     }
 
     @Test
-    void completesAndStoresVulnerabilitiesWhenSomeScannersFailed() throws Exception {
+    void completesAndPersistsFindingsWhenSomeScannersFailed() throws Exception {
         Analysis analysis = createAnalysis();
         String callbackJson = SUCCESS_JSON.replace(
                 "\"status\": \"COMPLETED\",",
                 "\"status\": \"COMPLETED\", \"failedScanners\": [\"TRIVY\", \"CHECKOV\"],"
         );
-        AnalysisResultCallbackRequest request = objectMapper.readValue(
+        AnalysisCallbackSuccessRequest request = objectMapper.readValue(
                 callbackJson,
-                AnalysisResultCallbackRequest.class
+                AnalysisCallbackSuccessRequest.class
         );
         when(analysisRepository.findForUpdateWithRepositoryByAnalysisId(1L)).thenReturn(Optional.of(analysis));
-        when(repositoryFileRepository.findAllByRepositoryRepositoryIdAndFilePathIn(any(), any())).thenReturn(List.of());
-        when(repositoryFileRepository.saveAll(anyList())).thenAnswer(invocation -> invocation.getArgument(0));
-        when(vulnerabilityRepository.save(any(Vulnerability.class))).thenAnswer(invocation -> invocation.getArgument(0));
-        when(securityReferenceRepository.saveAll(anyList())).thenAnswer(invocation -> invocation.getArgument(0));
+        when(analysisFindingPersistenceService.saveAll(analysis, request.findings())).thenReturn(1);
 
-        service.saveResult(1L, request);
+        service.handleSuccess(1L, request);
 
+        verify(analysisFindingPersistenceService).saveAll(analysis, request.findings());
         assertThat(analysis.getAnalysisStatus()).isEqualTo(AnalysisStatus.COMPLETED);
         assertThat(analysis.getFailureReason()).isEqualTo("일부 스캐너 실패: TRIVY, CHECKOV");
-        verify(vulnerabilityRepository).save(any(Vulnerability.class));
-        verify(analysisResultRepository).save(any(AnalysisResult.class));
     }
 
     @Test
-    void savesFailureCallbackAndIgnoresDuplicate() throws Exception {
+    void handlesFailureAndIgnoresDuplicate() throws Exception {
         Analysis analysis = createAnalysis();
-        AnalysisFailureCallbackRequest request = objectMapper.readValue(
-                FAILURE_JSON,
-                AnalysisFailureCallbackRequest.class
-        );
+        AnalysisCallbackFailureRequest request = objectMapper.readValue(FAILURE_JSON, AnalysisCallbackFailureRequest.class);
         when(analysisRepository.findForUpdateWithRepositoryByAnalysisId(1L)).thenReturn(Optional.of(analysis));
 
-        service.saveFailure(1L, request);
-        service.saveFailure(1L, request);
+        service.handleFailure(1L, request);
+        service.handleFailure(1L, request);
 
         assertThat(analysis.getAnalysisStatus()).isEqualTo(AnalysisStatus.FAILED);
-        assertThat(analysis.getFailureReason())
-                .isEqualTo("failedStage=collect, errorCode=CLONE_FAILED, errorMessage=clone failed");
+        assertThat(analysis.getFailureReason()).isEqualTo("collect - CLONE_FAILED - clone failed");
         assertThat(analysis.getCompletedAt()).isNotNull();
-        verify(vulnerabilityRepository, never()).save(any());
-    }
-
-    @Test
-    void mapsInfoSeverityToLow() throws Exception {
-        Analysis analysis = createAnalysis();
-        AnalysisResultCallbackRequest request = objectMapper.readValue(
-                SUCCESS_JSON.replace("\"HIGH\"", "\"INFO\""),
-                AnalysisResultCallbackRequest.class
-        );
-        when(analysisRepository.findForUpdateWithRepositoryByAnalysisId(1L)).thenReturn(Optional.of(analysis));
-        when(repositoryFileRepository.findAllByRepositoryRepositoryIdAndFilePathIn(any(), any())).thenReturn(List.of());
-        when(repositoryFileRepository.saveAll(anyList())).thenAnswer(invocation -> invocation.getArgument(0));
-        when(vulnerabilityRepository.save(any(Vulnerability.class))).thenAnswer(invocation -> invocation.getArgument(0));
-        when(securityReferenceRepository.saveAll(anyList())).thenAnswer(invocation -> invocation.getArgument(0));
-
-        service.saveResult(1L, request);
-
-        ArgumentCaptor<Vulnerability> captor = ArgumentCaptor.forClass(Vulnerability.class);
-        verify(vulnerabilityRepository).save(captor.capture());
-        assertThat(captor.getValue().getSeverity()).isEqualTo(Severity.LOW);
+        verifyNoInteractions(analysisFindingPersistenceService);
     }
 
     private Analysis createAnalysis() {
         User user = User.createGithubUser(1L, "octocat", "octocat@example.com", "Octocat", "token", null);
         ProjectRepository repository = ProjectRepository.create(
                 user,
+                "octocat",
                 "repo",
                 "description",
                 "https://github.com/octocat/repo",
                 "main"
         );
+        ReflectionTestUtils.setField(repository, "repositoryId", 1L);
         return Analysis.create(repository);
     }
 }

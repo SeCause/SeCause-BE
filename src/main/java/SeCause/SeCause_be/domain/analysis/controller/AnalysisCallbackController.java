@@ -1,7 +1,7 @@
 package SeCause.SeCause_be.domain.analysis.controller;
 
-import SeCause.SeCause_be.domain.analysis.dto.AnalysisFailureCallbackRequest;
-import SeCause.SeCause_be.domain.analysis.dto.AnalysisResultCallbackRequest;
+import SeCause.SeCause_be.domain.analysis.dto.AnalysisCallbackFailureRequest;
+import SeCause.SeCause_be.domain.analysis.dto.AnalysisCallbackSuccessRequest;
 import SeCause.SeCause_be.domain.analysis.service.AnalysisCallbackService;
 import SeCause.SeCause_be.global.apiPayload.response.ApiResponse;
 import jakarta.validation.Valid;
@@ -20,20 +20,20 @@ public class AnalysisCallbackController {
     private final AnalysisCallbackService analysisCallbackService;
 
     @PostMapping("/{analysisId}/result")
-    public ApiResponse<Void> saveResult(
+    public ApiResponse<Void> handleSuccess(
             @PathVariable Long analysisId,
-            @RequestBody @Valid AnalysisResultCallbackRequest request
+            @RequestBody @Valid AnalysisCallbackSuccessRequest request
     ) {
-        analysisCallbackService.saveResult(analysisId, request);
-        return ApiResponse.onSuccess("분석 결과를 수신했습니다.");
+        analysisCallbackService.handleSuccess(analysisId, request);
+        return ApiResponse.onSuccess("분석 성공 콜백 처리가 완료됐습니다.");
     }
 
     @PostMapping("/{analysisId}/failure")
-    public ApiResponse<Void> saveFailure(
+    public ApiResponse<Void> handleFailure(
             @PathVariable Long analysisId,
-            @RequestBody @Valid AnalysisFailureCallbackRequest request
+            @RequestBody @Valid AnalysisCallbackFailureRequest request
     ) {
-        analysisCallbackService.saveFailure(analysisId, request);
-        return ApiResponse.onSuccess("분석 실패 결과를 수신했습니다.");
+        analysisCallbackService.handleFailure(analysisId, request);
+        return ApiResponse.onSuccess("분석 실패 콜백 처리가 완료됐습니다.");
     }
 }

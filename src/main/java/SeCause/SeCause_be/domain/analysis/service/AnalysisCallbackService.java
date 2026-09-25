@@ -1,38 +1,20 @@
 package SeCause.SeCause_be.domain.analysis.service;
 
-import SeCause.SeCause_be.domain.analysis.dto.AnalysisFailureCallbackRequest;
-import SeCause.SeCause_be.domain.analysis.dto.AnalysisResultCallbackRequest;
+import SeCause.SeCause_be.domain.analysis.dto.AnalysisCallbackFailureRequest;
+import SeCause.SeCause_be.domain.analysis.dto.AnalysisCallbackSuccessRequest;
 import SeCause.SeCause_be.domain.analysis.entity.Analysis;
-import SeCause.SeCause_be.domain.analysis.entity.AnalysisResult;
 import SeCause.SeCause_be.domain.analysis.entity.AnalysisStatus;
 import SeCause.SeCause_be.domain.analysis.exception.AnalysisException;
 import SeCause.SeCause_be.domain.analysis.exception.code.AnalysisErrorCode;
 import SeCause.SeCause_be.domain.analysis.repository.AnalysisRepository;
-import SeCause.SeCause_be.domain.analysis.repository.AnalysisResultRepository;
-import SeCause.SeCause_be.domain.projectRepository.entity.FileType;
-import SeCause.SeCause_be.domain.projectRepository.entity.ProjectRepository;
-import SeCause.SeCause_be.domain.projectRepository.entity.RepositoryFile;
-import SeCause.SeCause_be.domain.projectRepository.repository.RepositoryFileRepository;
-import SeCause.SeCause_be.domain.security.entity.ReferenceType;
-import SeCause.SeCause_be.domain.security.entity.SecurityReference;
-import SeCause.SeCause_be.domain.security.repository.SecurityReferenceRepository;
-import SeCause.SeCause_be.domain.vulnerability.entity.CodeVulnerability;
-import SeCause.SeCause_be.domain.vulnerability.entity.InfraVulnerability;
-import SeCause.SeCause_be.domain.vulnerability.entity.Severity;
-import SeCause.SeCause_be.domain.vulnerability.entity.Vulnerability;
-import SeCause.SeCause_be.domain.vulnerability.repository.VulnerabilityRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
 
-import java.util.LinkedHashMap;
-import java.util.LinkedHashSet;
 import java.util.List;
-import java.util.Locale;
-import java.util.Map;
 import java.util.Objects;
-import java.util.StringJoiner;
 
 @Slf4j
 @Service
@@ -43,41 +25,41 @@ public class AnalysisCallbackService {
     private static final int MAX_FAILURE_REASON_LENGTH = 500;
 
     private final AnalysisRepository analysisRepository;
-    private final RepositoryFileRepository repositoryFileRepository;
-    private final VulnerabilityRepository vulnerabilityRepository;
-    private final AnalysisResultRepository analysisResultRepository;
-    private final SecurityReferenceRepository securityReferenceRepository;
+    private final AnalysisFindingPersistenceService analysisFindingPersistenceService;
 
     @Transactional
-    public void saveResult(Long analysisId, AnalysisResultCallbackRequest request) {
+    public void handleSuccess(Long analysisId, AnalysisCallbackSuccessRequest request) {
+        validateAnalysisId(analysisId, request.analysisId());
+        if (request.status() != AnalysisStatus.COMPLETED) {
+            throw new AnalysisException(AnalysisErrorCode.ANALYSIS_CALLBACK_INVALID_STATUS);
+        }
+
         Analysis analysis = getAnalysisForUpdate(analysisId);
-        if (isTerminal(analysis)) {
+        validateRepositoryId(analysis, request.repositoryId());
+        if (isTerminal(analysis.getAnalysisStatus())) {
             return;
         }
 
-        ProjectRepository repository = analysis.getRepository();
-        Map<String, RepositoryFile> filesByPath = upsertRepositoryFiles(repository, request.findings());
-
-        for (AnalysisResultCallbackRequest.Finding finding : request.findings()) {
-            RepositoryFile repositoryFile = filesByPath.get(finding.filePath());
-            Vulnerability vulnerability = saveVulnerability(analysis, repositoryFile, finding);
-            saveAnalysisResult(vulnerability, finding);
-            saveSecurityReferences(vulnerability, finding.referenceDocuments());
-        }
-
+        int totalFiles = analysisFindingPersistenceService.saveAll(analysis, request.findings());
         recordFailedScanners(analysisId, analysis, request.failedScanners());
-        repository.updateTotalFiles(filesByPath.size());
+        analysis.getRepository().updateAnalysisMetrics(totalFiles, analysis.getRepository().getLineCount());
         analysis.complete();
     }
 
     @Transactional
-    public void saveFailure(Long analysisId, AnalysisFailureCallbackRequest request) {
+    public void handleFailure(Long analysisId, AnalysisCallbackFailureRequest request) {
+        validateAnalysisId(analysisId, request.analysisId());
+        if (request.status() != AnalysisStatus.FAILED) {
+            throw new AnalysisException(AnalysisErrorCode.ANALYSIS_CALLBACK_INVALID_STATUS);
+        }
+
         Analysis analysis = getAnalysisForUpdate(analysisId);
-        if (isTerminal(analysis)) {
+        validateRepositoryId(analysis, request.repositoryId());
+        if (isTerminal(analysis.getAnalysisStatus())) {
             return;
         }
 
-        analysis.fail(buildFailureReason(request));
+        analysis.fail(createFailureReason(request));
     }
 
     private Analysis getAnalysisForUpdate(Long analysisId) {
@@ -85,180 +67,35 @@ public class AnalysisCallbackService {
                 .orElseThrow(() -> new AnalysisException(AnalysisErrorCode.ANALYSIS_RESULT_NOT_FOUND));
     }
 
-    private boolean isTerminal(Analysis analysis) {
-        return analysis.getAnalysisStatus() == AnalysisStatus.COMPLETED
-                || analysis.getAnalysisStatus() == AnalysisStatus.FAILED;
-    }
-
-    private Map<String, RepositoryFile> upsertRepositoryFiles(
-            ProjectRepository repository,
-            List<AnalysisResultCallbackRequest.Finding> findings
-    ) {
-        LinkedHashSet<String> uniquePaths = findings.stream()
-                .map(AnalysisResultCallbackRequest.Finding::filePath)
-                .collect(LinkedHashSet::new, LinkedHashSet::add, LinkedHashSet::addAll);
-
-        Map<String, RepositoryFile> filesByPath = new LinkedHashMap<>();
-        if (uniquePaths.isEmpty()) {
-            return filesByPath;
-        }
-
-        repositoryFileRepository.findAllByRepositoryRepositoryIdAndFilePathIn(
-                        repository.getRepositoryId(),
-                        uniquePaths
-                )
-                .forEach(file -> filesByPath.putIfAbsent(file.getFilePath(), file));
-
-        List<RepositoryFile> newFiles = uniquePaths.stream()
-                .filter(path -> !filesByPath.containsKey(path))
-                .map(path -> RepositoryFile.create(repository, path, FileType.SOURCE, null, 0L))
-                .toList();
-
-        repositoryFileRepository.saveAll(newFiles)
-                .forEach(file -> filesByPath.put(file.getFilePath(), file));
-        return filesByPath;
-    }
-
-    private Vulnerability saveVulnerability(
-            Analysis analysis,
-            RepositoryFile repositoryFile,
-            AnalysisResultCallbackRequest.Finding finding
-    ) {
-        Severity severity = mapSeverity(finding.severity());
-        Vulnerability vulnerability;
-
-        if (finding.lineStart() != null || finding.lineEnd() != null) {
-            vulnerability = CodeVulnerability.create(
-                    analysis,
-                    repositoryFile,
-                    finding.type(),
-                    finding.cweId(),
-                    severity,
-                    finding.lineStart(),
-                    finding.lineEnd(),
-                    finding.evidence()
-            );
-        } else {
-            vulnerability = InfraVulnerability.create(
-                    analysis,
-                    repositoryFile,
-                    finding.type(),
-                    finding.cweId(),
-                    severity,
-                    finding.evidence()
-            );
-        }
-
-        return vulnerabilityRepository.save(vulnerability);
-    }
-
-    private void saveAnalysisResult(
-            Vulnerability vulnerability,
-            AnalysisResultCallbackRequest.Finding finding
-    ) {
-        String fixCode = firstFixedCode(finding.fixExamples());
-        AnalysisResult result;
-
-        if (vulnerability instanceof CodeVulnerability codeVulnerability) {
-            result = AnalysisResult.createForCodeVulnerability(
-                    codeVulnerability,
-                    finding.rootCause(),
-                    finding.summary(),
-                    finding.impact(),
-                    fixCode,
-                    finding.recommendation()
-            );
-        } else {
-            result = AnalysisResult.createForInfraVulnerability(
-                    (InfraVulnerability) vulnerability,
-                    finding.rootCause(),
-                    finding.summary(),
-                    finding.impact(),
-                    fixCode,
-                    finding.recommendation()
-            );
-        }
-
-        analysisResultRepository.save(result);
-    }
-
-    private void saveSecurityReferences(
-            Vulnerability vulnerability,
-            List<AnalysisResultCallbackRequest.ReferenceDocument> documents
-    ) {
-        if (documents == null || documents.isEmpty()) {
-            return;
-        }
-
-        List<SecurityReference> references = documents.stream()
-                .map(document -> createSecurityReference(vulnerability, document))
-                .toList();
-        securityReferenceRepository.saveAll(references);
-    }
-
-    private SecurityReference createSecurityReference(
-            Vulnerability vulnerability,
-            AnalysisResultCallbackRequest.ReferenceDocument document
-    ) {
-        ReferenceType referenceType = mapReferenceType(document.sourceType());
-        if (vulnerability instanceof CodeVulnerability codeVulnerability) {
-            return SecurityReference.createForCodeVulnerability(
-                    codeVulnerability,
-                    referenceType,
-                    document.title(),
-                    document.url()
-            );
-        }
-
-        return SecurityReference.createForInfraVulnerability(
-                (InfraVulnerability) vulnerability,
-                referenceType,
-                document.title(),
-                document.url()
-        );
-    }
-
-    private Severity mapSeverity(String value) {
-        if (value == null) {
-            log.warn("Unknown severity received from analysis server: null. Mapping to LOW.");
-            return Severity.LOW;
-        }
-
-        try {
-            if ("INFO".equalsIgnoreCase(value)) {
-                return Severity.LOW;
-            }
-            return Severity.valueOf(value.trim().toUpperCase(Locale.ROOT));
-        } catch (IllegalArgumentException exception) {
-            log.warn("Unknown severity received from analysis server: {}. Mapping to LOW.", value);
-            return Severity.LOW;
+    private void validateAnalysisId(Long pathAnalysisId, Long bodyAnalysisId) {
+        if (!Objects.equals(pathAnalysisId, bodyAnalysisId)) {
+            throw new AnalysisException(AnalysisErrorCode.ANALYSIS_CALLBACK_INVALID_PAYLOAD);
         }
     }
 
-    private ReferenceType mapReferenceType(String value) {
-        if (value == null) {
-            return ReferenceType.OTHER;
-        }
-
-        try {
-            return ReferenceType.valueOf(value.trim().toUpperCase(Locale.ROOT));
-        } catch (IllegalArgumentException exception) {
-            return ReferenceType.OTHER;
+    private void validateRepositoryId(Analysis analysis, Long repositoryId) {
+        if (!Objects.equals(analysis.getRepository().getRepositoryId(), repositoryId)) {
+            throw new AnalysisException(AnalysisErrorCode.ANALYSIS_CALLBACK_INVALID_PAYLOAD);
         }
     }
 
-    private String firstFixedCode(List<AnalysisResultCallbackRequest.FixExample> fixExamples) {
-        if (fixExamples == null || fixExamples.isEmpty()) {
-            return null;
-        }
-        return fixExamples.getFirst().fixedCode();
+    private boolean isTerminal(AnalysisStatus status) {
+        return status == AnalysisStatus.COMPLETED
+                || status == AnalysisStatus.FAILED
+                || status == AnalysisStatus.CANCELLED;
     }
 
-    private String buildFailureReason(AnalysisFailureCallbackRequest request) {
-        StringJoiner reason = new StringJoiner(", ");
-        addFailurePart(reason, "failedStage", request.failedStage());
-        addFailurePart(reason, "errorCode", request.errorCode());
-        addFailurePart(reason, "errorMessage", request.errorMessage());
+    private String createFailureReason(AnalysisCallbackFailureRequest request) {
+        StringBuilder reason = new StringBuilder();
+
+        append(reason, request.failedStage());
+        append(reason, request.errorCode());
+        append(reason, request.errorMessage());
+
+        if (reason.isEmpty()) {
+            return "분석 처리 중 오류가 발생했습니다.";
+        }
+
         return reason.toString();
     }
 
@@ -267,18 +104,26 @@ public class AnalysisCallbackService {
             return;
         }
 
-        String failureReason = PARTIAL_FAILURE_PREFIX + String.join(", ", failedScanners);
-        if (failureReason.length() > MAX_FAILURE_REASON_LENGTH) {
-            failureReason = failureReason.substring(0, MAX_FAILURE_REASON_LENGTH);
-        }
-
+        String failureReason = limit(
+                PARTIAL_FAILURE_PREFIX + String.join(", ", failedScanners),
+                MAX_FAILURE_REASON_LENGTH
+        );
         analysis.updateFailureReason(failureReason);
         log.warn("Analysis {} completed with scanner failures: {}", analysisId, failureReason);
     }
 
-    private void addFailurePart(StringJoiner reason, String name, String value) {
-        if (Objects.nonNull(value) && !value.isBlank()) {
-            reason.add(name + "=" + value);
+    private void append(StringBuilder builder, String value) {
+        if (!StringUtils.hasText(value)) {
+            return;
         }
+
+        if (!builder.isEmpty()) {
+            builder.append(" - ");
+        }
+        builder.append(value.trim());
+    }
+
+    private String limit(String value, int maxLength) {
+        return value.length() <= maxLength ? value : value.substring(0, maxLength);
     }
 }

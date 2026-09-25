@@ -34,6 +34,7 @@ public class AnalysisRequestPersistenceService {
 
         ProjectRepository repository = projectRepositoryRepository.save(ProjectRepository.create(
                 user,
+                githubRepository.owner().login(),
                 githubRepository.name(),
                 githubRepository.description(),
                 githubRepository.cloneUrl(),
