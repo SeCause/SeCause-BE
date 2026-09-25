@@ -1,6 +1,5 @@
 package SeCause.SeCause_be.global.security;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.FilterChain;
 import org.junit.jupiter.api.Test;
 import org.springframework.mock.web.MockHttpServletRequest;
@@ -13,7 +12,7 @@ import static org.mockito.Mockito.verify;
 
 class InternalApiTokenFilterTest {
 
-    private final InternalApiTokenFilter filter = new InternalApiTokenFilter(new ObjectMapper(), "shared-secret");
+    private final InternalApiTokenFilter filter = new InternalApiTokenFilter("shared-secret");
 
     @Test
     void rejectsInvalidTokenOnInternalPath() throws Exception {

@@ -22,14 +22,10 @@ public class InternalApiTokenFilter extends OncePerRequestFilter {
     private static final String INTERNAL_PATH_PREFIX = "/api/internal/";
     private static final String INTERNAL_TOKEN_HEADER = "X-Internal-Token";
 
-    private final ObjectMapper objectMapper;
+    private final ObjectMapper objectMapper = new ObjectMapper();
     private final byte[] expectedToken;
 
-    public InternalApiTokenFilter(
-            ObjectMapper objectMapper,
-            @Value("${internal.api.token}") String internalApiToken
-    ) {
-        this.objectMapper = objectMapper;
+    public InternalApiTokenFilter(@Value("${internal.api.token}") String internalApiToken) {
         this.expectedToken = internalApiToken.getBytes(StandardCharsets.UTF_8);
     }
 
