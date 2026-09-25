@@ -118,6 +118,7 @@ public class AnalysisResultRepositoryImpl implements AnalysisResultRepositoryCus
                 .select(
                         this.analysisResult.analysisResultId,
                         vulnerability.vulnerabilityType,
+                        vulnerability.cweId,
                         vulnerability.severity,
                         repositoryFile.filePath,
                         codeVulnerability.lineStart,
@@ -141,6 +142,7 @@ public class AnalysisResultRepositoryImpl implements AnalysisResultRepositoryCus
         return new RepositoryIssueDetailResponse(
                 tuple.get(this.analysisResult.analysisResultId),
                 tuple.get(vulnerability.vulnerabilityType),
+                tuple.get(vulnerability.cweId),
                 severity == null ? null : severity.name(),
                 tuple.get(repositoryFile.filePath),
                 tuple.get(codeVulnerability.lineStart),

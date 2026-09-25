@@ -69,6 +69,10 @@ public class Analysis extends BaseEntity {
         this.completedAt = LocalDateTime.now();
     }
 
+    public void updateFailureReason(String failureReason) {
+        this.failureReason = failureReason;
+    }
+
     public void fail(String failureReason) {
         this.analysisStatus = AnalysisStatus.FAILED;
         this.failureReason = failureReason;

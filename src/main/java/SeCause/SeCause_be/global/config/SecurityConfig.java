@@ -2,6 +2,7 @@ package SeCause.SeCause_be.global.config;
 
 import SeCause.SeCause_be.global.apiPayload.code.GlobalErrorCode;
 import SeCause.SeCause_be.global.apiPayload.response.ApiResponse;
+import SeCause.SeCause_be.global.security.InternalApiTokenFilter;
 import SeCause.SeCause_be.global.security.jwt.JwtAuthenticationFilter;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
@@ -27,7 +28,8 @@ import java.util.List;
 public class SecurityConfig {
 
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
-    private final ObjectMapper objectMapper = new ObjectMapper();
+    private final InternalApiTokenFilter internalApiTokenFilter;
+    private final ObjectMapper objectMapper;
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
@@ -48,6 +50,7 @@ public class SecurityConfig {
                                 "/api/auth/github/login",
                                 "/api/auth/reissue",
                                 "/api/auth/logout",
+                                "/api/internal/**",
                                 "/swagger-ui.html",
                                 "/swagger-ui/**",
                                 "/api-docs/**",
@@ -57,6 +60,7 @@ public class SecurityConfig {
                         ).permitAll()
                         .anyRequest().authenticated()
                 )
+                .addFilterBefore(internalApiTokenFilter, JwtAuthenticationFilter.class)
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
                 .build();
     }
