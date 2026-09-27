@@ -48,11 +48,11 @@ public class SecurityConfig {
                                 "/api/auth/github/login",
                                 "/api/auth/reissue",
                                 "/api/auth/logout",
+                                "/api/internal/**",
                                 "/swagger-ui.html",
                                 "/swagger-ui/**",
                                 "/api-docs/**",
                                 "/v3/api-docs/**",
-                                "/internal/analysis/callback/**",
                                 "/health-check",
                                 "/error"
                         ).permitAll()

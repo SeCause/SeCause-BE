@@ -11,6 +11,9 @@ public record RepositoryIssueDetailResponse(
         @Schema(description = "취약점 유형", example = "SQL_INJECTION")
         String vulnerabilityType,
 
+        @Schema(description = "CWE 식별자", example = "CWE-89", nullable = true)
+        String cweId,
+
         @Schema(description = "취약도 수준", example = "CRITICAL")
         String severity,
 

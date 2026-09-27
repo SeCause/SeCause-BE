@@ -15,6 +15,6 @@ public class WebMvcConfig implements WebMvcConfigurer {
     @Override
     public void addInterceptors(InterceptorRegistry registry) {
         registry.addInterceptor(internalCallbackInterceptor)
-                .addPathPatterns("/internal/analysis/callback/**");
+                .addPathPatterns("/api/internal/**");
     }
 }

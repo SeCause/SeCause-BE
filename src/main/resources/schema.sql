@@ -50,3 +50,6 @@ ALTER TABLE repositories
 
 ALTER TABLE repositories
     ALTER COLUMN line_count SET NOT NULL@@
+
+ALTER TABLE vulnerabilities
+    ADD COLUMN IF NOT EXISTS cwe_id VARCHAR(30)@@

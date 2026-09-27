@@ -5,8 +5,6 @@ import SeCause.SeCause_be.domain.analysis.dto.AnalysisCallbackFixExample;
 import SeCause.SeCause_be.domain.analysis.dto.AnalysisCallbackReferenceDocument;
 import SeCause.SeCause_be.domain.analysis.entity.Analysis;
 import SeCause.SeCause_be.domain.analysis.entity.AnalysisResult;
-import SeCause.SeCause_be.domain.analysis.exception.AnalysisException;
-import SeCause.SeCause_be.domain.analysis.exception.code.AnalysisErrorCode;
 import SeCause.SeCause_be.domain.analysis.repository.AnalysisResultRepository;
 import SeCause.SeCause_be.domain.projectRepository.entity.FileType;
 import SeCause.SeCause_be.domain.projectRepository.entity.RepositoryFile;
@@ -20,13 +18,18 @@ import SeCause.SeCause_be.domain.vulnerability.entity.Severity;
 import SeCause.SeCause_be.domain.vulnerability.repository.CodeVulnerabilityRepository;
 import SeCause.SeCause_be.domain.vulnerability.repository.InfraVulnerabilityRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Objects;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class AnalysisFindingPersistenceService {
@@ -37,21 +40,32 @@ public class AnalysisFindingPersistenceService {
     private final AnalysisResultRepository analysisResultRepository;
     private final SecurityReferenceRepository securityReferenceRepository;
 
-    public void saveAll(Analysis analysis, List<AnalysisCallbackFinding> findings) {
-        safeList(findings).stream()
+    public int saveAll(Analysis analysis, List<AnalysisCallbackFinding> findings) {
+        List<AnalysisCallbackFinding> safeFindings = safeList(findings).stream()
                 .filter(Objects::nonNull)
-                .forEach(finding -> saveFinding(analysis, finding));
+                .toList();
+        Map<String, RepositoryFile> filesByPath = upsertRepositoryFiles(analysis, safeFindings);
+
+        safeFindings.forEach(finding -> saveFinding(
+                analysis,
+                finding,
+                filesByPath.get(limit(finding.filePath(), 1000))
+        ));
+        return filesByPath.size();
     }
 
     // FastAPI finding을 파일, 취약점, 상세 결과, 참고 문서로 저장
-    private void saveFinding(Analysis analysis, AnalysisCallbackFinding finding) {
-        RepositoryFile repositoryFile = getOrCreateRepositoryFile(analysis, finding);
-
-        if (isInfraTool(finding.tool())) {
+    private void saveFinding(
+            Analysis analysis,
+            AnalysisCallbackFinding finding,
+            RepositoryFile repositoryFile
+    ) {
+        if (finding.lineStart() == null && finding.lineEnd() == null) {
             InfraVulnerability vulnerability = infraVulnerabilityRepository.save(InfraVulnerability.create(
                     analysis,
                     repositoryFile,
                     limit(finding.type(), 100),
+                    limit(finding.cweId(), 30),
                     resolveSeverity(finding.severity()),
                     finding.evidence()
             ));
@@ -64,6 +78,7 @@ public class AnalysisFindingPersistenceService {
                 analysis,
                 repositoryFile,
                 limit(finding.type(), 100),
+                limit(finding.cweId(), 30),
                 resolveSeverity(finding.severity()),
                 finding.lineStart(),
                 finding.lineEnd(),
@@ -73,21 +88,44 @@ public class AnalysisFindingPersistenceService {
         saveSecurityReferences(vulnerability, finding.referenceDocuments());
     }
 
-    // repositoryId와 filePath 기준으로 파일 row 조회 또는 생성
-    private RepositoryFile getOrCreateRepositoryFile(Analysis analysis, AnalysisCallbackFinding finding) {
-        String filePath = limit(finding.filePath(), 1000);
+    private Map<String, RepositoryFile> upsertRepositoryFiles(
+            Analysis analysis,
+            List<AnalysisCallbackFinding> findings
+    ) {
+        Map<String, AnalysisCallbackFinding> findingsByPath = new LinkedHashMap<>();
+        findings.forEach(finding -> findingsByPath.putIfAbsent(
+                limit(finding.filePath(), 1000),
+                finding
+        ));
+        LinkedHashSet<String> uniquePaths = new LinkedHashSet<>(findingsByPath.keySet());
+        Map<String, RepositoryFile> filesByPath = new LinkedHashMap<>();
+        if (uniquePaths.isEmpty()) {
+            return filesByPath;
+        }
 
-        return repositoryFileRepository.findByRepositoryRepositoryIdAndFilePath(
+        repositoryFileRepository.findAllByRepositoryRepositoryIdAndFilePathIn(
                         analysis.getRepository().getRepositoryId(),
-                        filePath
+                        uniquePaths
                 )
-                .orElseGet(() -> repositoryFileRepository.save(RepositoryFile.create(
+                .forEach(file -> filesByPath.putIfAbsent(file.getFilePath(), file));
+
+        List<RepositoryFile> newFiles = uniquePaths.stream()
+                .filter(path -> !filesByPath.containsKey(path))
+                .map(path -> RepositoryFile.create(
                         analysis.getRepository(),
-                        filePath,
-                        resolveFileType(finding.tool()),
-                        resolveLanguage(finding.fixExamples()),
+                        path,
+                        resolveFileType(findingsByPath.get(path).tool()),
+                        resolveLanguage(findingsByPath.get(path).fixExamples()),
                         0L
-                )));
+                ))
+                .toList();
+        repositoryFileRepository.saveAll(newFiles)
+                .forEach(file -> filesByPath.put(file.getFilePath(), file));
+        return filesByPath;
+    }
+
+    private FileType resolveFileType(String tool) {
+        return "INFRA".equalsIgnoreCase(tool) ? FileType.INFRA : FileType.SOURCE;
     }
 
     // 코드 취약점 상세 결과 저장
@@ -154,22 +192,11 @@ public class AnalysisFindingPersistenceService {
                 .forEach(securityReferenceRepository::save);
     }
 
-    private FileType resolveFileType(String tool) {
-        if (isInfraTool(tool)) {
-            return FileType.INFRA;
-        }
-
-        return FileType.SOURCE;
-    }
-
-    private boolean isInfraTool(String tool) {
-        return "INFRA".equalsIgnoreCase(tool);
-    }
-
-    // FastAPI severity 문자열 변환, INFO만 LOW로 허용
+    // FastAPI severity 문자열 변환, INFO/알 수 없는 값은 LOW 처리
     private Severity resolveSeverity(String severity) {
         if (!StringUtils.hasText(severity)) {
-            throw new AnalysisException(AnalysisErrorCode.ANALYSIS_CALLBACK_INVALID_PAYLOAD);
+            log.warn("Unknown severity received from analysis server: {}. Mapping to LOW.", severity);
+            return Severity.LOW;
         }
 
         if ("INFO".equalsIgnoreCase(severity)) {
@@ -177,24 +204,24 @@ public class AnalysisFindingPersistenceService {
         }
 
         try {
-            return Severity.valueOf(severity.toUpperCase(Locale.ROOT));
+            return Severity.valueOf(severity.trim().toUpperCase(Locale.ROOT));
         } catch (IllegalArgumentException exception) {
-            throw new AnalysisException(AnalysisErrorCode.ANALYSIS_CALLBACK_INVALID_PAYLOAD);
+            log.warn("Unknown severity received from analysis server: {}. Mapping to LOW.", severity);
+            return Severity.LOW;
         }
     }
 
-    // 참고 문서 title/url 기반 ReferenceType 추론
+    // sourceType을 ReferenceType으로 변환, 미지원 값은 OTHER 처리
     private ReferenceType resolveReferenceType(AnalysisCallbackReferenceDocument reference) {
-        String value = ((reference.title() == null ? "" : reference.title()) + " "
-                + (reference.url() == null ? "" : reference.url())).toLowerCase(Locale.ROOT);
+        if (!StringUtils.hasText(reference.sourceType())) {
+            return ReferenceType.OTHER;
+        }
 
-        if (value.contains("cwe") || value.contains("mitre.org")) {
-            return ReferenceType.CWE;
+        try {
+            return ReferenceType.valueOf(reference.sourceType().trim().toUpperCase(Locale.ROOT));
+        } catch (IllegalArgumentException exception) {
+            return ReferenceType.OTHER;
         }
-        if (value.contains("owasp")) {
-            return ReferenceType.OWASP;
-        }
-        return ReferenceType.OTHER;
     }
 
     // 첫 번째 fixedCode를 저장용 수정 코드로 선택
