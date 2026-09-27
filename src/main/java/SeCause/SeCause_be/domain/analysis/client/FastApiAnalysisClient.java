@@ -3,6 +3,7 @@ package SeCause.SeCause_be.domain.analysis.client;
 import SeCause.SeCause_be.domain.analysis.exception.code.AnalysisErrorCode;
 import SeCause.SeCause_be.domain.analysis.dto.FastApiAnalysisRequest;
 import SeCause.SeCause_be.domain.analysis.exception.AnalysisException;
+import SeCause.SeCause_be.domain.analysis.properties.AnalysisCallbackProperties;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.MediaType;
@@ -15,6 +16,7 @@ import org.springframework.web.reactive.function.client.WebClientException;
 public class FastApiAnalysisClient {
 
     private final WebClient webClient;
+    private final AnalysisCallbackProperties analysisCallbackProperties;
 
     @Value("${fast-api.analysis-request-url}")
     private String analysisRequestUrl;
@@ -24,6 +26,7 @@ public class FastApiAnalysisClient {
         try {
             webClient.post()
                     .uri(analysisRequestUrl)
+                    .header("X-Internal-Token", analysisCallbackProperties.internalToken())
                     .contentType(MediaType.APPLICATION_JSON)
                     .bodyValue(request)
                     .retrieve()
