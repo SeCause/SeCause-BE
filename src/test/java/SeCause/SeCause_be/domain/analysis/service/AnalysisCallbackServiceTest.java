@@ -65,6 +65,7 @@ class AnalysisCallbackServiceTest {
     @Test
     void handlesPayloadWithoutFailedScannersAndIgnoresDuplicate() throws Exception {
         Analysis analysis = createAnalysis();
+        analysis.getRepository().updateAnalysisMetrics(42, 1_000L);
         AnalysisCallbackSuccessRequest request = objectMapper.readValue(SUCCESS_JSON, AnalysisCallbackSuccessRequest.class);
         assertThat(request.failedScanners()).isEmpty();
         when(analysisRepository.findForUpdateWithRepositoryByAnalysisId(1L)).thenReturn(Optional.of(analysis));
@@ -77,7 +78,8 @@ class AnalysisCallbackServiceTest {
         assertThat(analysis.getAnalysisStatus()).isEqualTo(AnalysisStatus.COMPLETED);
         assertThat(analysis.getProgressPercent()).isEqualTo(100);
         assertThat(analysis.getCompletedAt()).isNotNull();
-        assertThat(analysis.getRepository().getTotalFiles()).isEqualTo(1);
+        assertThat(analysis.getRepository().getTotalFiles()).isEqualTo(42);
+        assertThat(analysis.getRepository().getLineCount()).isEqualTo(1_000L);
     }
 
     @Test
@@ -85,7 +87,7 @@ class AnalysisCallbackServiceTest {
         Analysis analysis = createAnalysis();
         String callbackJson = SUCCESS_JSON.replace(
                 "\"status\": \"COMPLETED\",",
-                "\"status\": \"COMPLETED\", \"failedScanners\": [\"TRIVY\", \"CHECKOV\"],"
+                "\"status\": \"COMPLETED\", \"failedScanners\": [\" TRIVY \", null, \"\", \"  \", \"CHECKOV\"],"
         );
         AnalysisCallbackSuccessRequest request = objectMapper.readValue(
                 callbackJson,
@@ -97,6 +99,7 @@ class AnalysisCallbackServiceTest {
         service.handleSuccess(1L, request);
 
         verify(analysisFindingPersistenceService).saveAll(analysis, request.findings());
+        assertThat(request.failedScanners()).containsExactly("TRIVY", "CHECKOV");
         assertThat(analysis.getAnalysisStatus()).isEqualTo(AnalysisStatus.COMPLETED);
         assertThat(analysis.getFailureReason()).isEqualTo("일부 스캐너 실패: TRIVY, CHECKOV");
     }

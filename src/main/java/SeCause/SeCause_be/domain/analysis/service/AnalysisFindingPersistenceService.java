@@ -92,10 +92,12 @@ public class AnalysisFindingPersistenceService {
             Analysis analysis,
             List<AnalysisCallbackFinding> findings
     ) {
-        LinkedHashSet<String> uniquePaths = findings.stream()
-                .map(AnalysisCallbackFinding::filePath)
-                .map(path -> limit(path, 1000))
-                .collect(LinkedHashSet::new, LinkedHashSet::add, LinkedHashSet::addAll);
+        Map<String, AnalysisCallbackFinding> findingsByPath = new LinkedHashMap<>();
+        findings.forEach(finding -> findingsByPath.putIfAbsent(
+                limit(finding.filePath(), 1000),
+                finding
+        ));
+        LinkedHashSet<String> uniquePaths = new LinkedHashSet<>(findingsByPath.keySet());
         Map<String, RepositoryFile> filesByPath = new LinkedHashMap<>();
         if (uniquePaths.isEmpty()) {
             return filesByPath;
@@ -112,14 +114,18 @@ public class AnalysisFindingPersistenceService {
                 .map(path -> RepositoryFile.create(
                         analysis.getRepository(),
                         path,
-                        FileType.SOURCE,
-                        null,
+                        resolveFileType(findingsByPath.get(path).tool()),
+                        resolveLanguage(findingsByPath.get(path).fixExamples()),
                         0L
                 ))
                 .toList();
         repositoryFileRepository.saveAll(newFiles)
                 .forEach(file -> filesByPath.put(file.getFilePath(), file));
         return filesByPath;
+    }
+
+    private FileType resolveFileType(String tool) {
+        return "INFRA".equalsIgnoreCase(tool) ? FileType.INFRA : FileType.SOURCE;
     }
 
     // 코드 취약점 상세 결과 저장
@@ -225,6 +231,16 @@ public class AnalysisFindingPersistenceService {
                 .map(AnalysisCallbackFixExample::fixedCode)
                 .filter(StringUtils::hasText)
                 .findFirst()
+                .orElse(null);
+    }
+
+    private String resolveLanguage(List<AnalysisCallbackFixExample> fixExamples) {
+        return safeList(fixExamples).stream()
+                .filter(Objects::nonNull)
+                .map(AnalysisCallbackFixExample::language)
+                .filter(StringUtils::hasText)
+                .findFirst()
+                .map(language -> limit(language, 50))
                 .orElse(null);
     }
 

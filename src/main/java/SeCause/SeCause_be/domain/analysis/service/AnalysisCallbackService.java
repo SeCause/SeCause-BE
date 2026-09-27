@@ -40,9 +40,8 @@ public class AnalysisCallbackService {
             return;
         }
 
-        int totalFiles = analysisFindingPersistenceService.saveAll(analysis, request.findings());
+        analysisFindingPersistenceService.saveAll(analysis, request.findings());
         recordFailedScanners(analysisId, analysis, request.failedScanners());
-        analysis.getRepository().updateAnalysisMetrics(totalFiles, analysis.getRepository().getLineCount());
         analysis.complete();
     }
 

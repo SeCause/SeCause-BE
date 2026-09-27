@@ -35,6 +35,20 @@ class InternalCallbackInterceptorTest {
         assertThat(allowed).isTrue();
     }
 
+    @Test
+    void rejectsMissingInternalToken() throws Exception {
+        MockHttpServletRequest request = new MockHttpServletRequest(
+                "POST",
+                "/api/internal/analyses/1/result"
+        );
+        MockHttpServletResponse response = new MockHttpServletResponse();
+
+        boolean allowed = interceptor.preHandle(request, response, new Object());
+
+        assertThat(allowed).isFalse();
+        assertThat(response.getStatus()).isEqualTo(401);
+    }
+
     private MockHttpServletRequest request(String token) {
         MockHttpServletRequest request = new MockHttpServletRequest(
                 "POST",

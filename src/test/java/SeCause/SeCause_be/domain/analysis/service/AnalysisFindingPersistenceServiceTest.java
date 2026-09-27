@@ -6,13 +6,16 @@ import SeCause.SeCause_be.domain.analysis.dto.AnalysisCallbackReferenceDocument;
 import SeCause.SeCause_be.domain.analysis.entity.Analysis;
 import SeCause.SeCause_be.domain.analysis.entity.AnalysisResult;
 import SeCause.SeCause_be.domain.analysis.repository.AnalysisResultRepository;
+import SeCause.SeCause_be.domain.projectRepository.entity.FileType;
 import SeCause.SeCause_be.domain.projectRepository.entity.ProjectRepository;
+import SeCause.SeCause_be.domain.projectRepository.entity.RepositoryFile;
 import SeCause.SeCause_be.domain.projectRepository.repository.RepositoryFileRepository;
 import SeCause.SeCause_be.domain.security.entity.ReferenceType;
 import SeCause.SeCause_be.domain.security.entity.SecurityReference;
 import SeCause.SeCause_be.domain.security.repository.SecurityReferenceRepository;
 import SeCause.SeCause_be.domain.user.entity.User;
 import SeCause.SeCause_be.domain.vulnerability.entity.CodeVulnerability;
+import SeCause.SeCause_be.domain.vulnerability.entity.InfraVulnerability;
 import SeCause.SeCause_be.domain.vulnerability.entity.Severity;
 import SeCause.SeCause_be.domain.vulnerability.repository.CodeVulnerabilityRepository;
 import SeCause.SeCause_be.domain.vulnerability.repository.InfraVulnerabilityRepository;
@@ -25,10 +28,12 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import java.util.List;
+import java.util.stream.StreamSupport;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyList;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -59,7 +64,7 @@ class AnalysisFindingPersistenceServiceTest {
         );
         when(repositoryFileRepository.findAllByRepositoryRepositoryIdAndFilePathIn(any(), any())).thenReturn(List.of());
         when(repositoryFileRepository.saveAll(anyList())).thenAnswer(invocation -> invocation.getArgument(0));
-        when(codeVulnerabilityRepository.save(any(CodeVulnerability.class)))
+        lenient().when(codeVulnerabilityRepository.save(any(CodeVulnerability.class)))
                 .thenAnswer(invocation -> invocation.getArgument(0));
     }
 
@@ -96,6 +101,41 @@ class AnalysisFindingPersistenceServiceTest {
         assertThat(captor.getAllValues())
                 .extracting(CodeVulnerability::getSeverity)
                 .containsExactly(Severity.LOW, Severity.LOW);
+    }
+
+    @Test
+    void createsInfraFileWithLanguageMetadata() {
+        Analysis analysis = createAnalysis();
+        AnalysisCallbackFinding finding = new AnalysisCallbackFinding(
+                "INFRA",
+                "MISCONFIGURATION",
+                null,
+                "MEDIUM",
+                "infra/main.tf",
+                null,
+                null,
+                "scanner message",
+                "취약 설정",
+                "요약",
+                "원인",
+                "영향",
+                "수정 방향",
+                List.of(new AnalysisCallbackFixExample("terraform", "...", "fixed", "설명")),
+                List.of(),
+                List.of()
+        );
+
+        service.saveAll(analysis, List.of(finding));
+
+        @SuppressWarnings("unchecked")
+        ArgumentCaptor<Iterable<RepositoryFile>> captor = ArgumentCaptor.forClass(Iterable.class);
+        verify(repositoryFileRepository).saveAll(captor.capture());
+        RepositoryFile savedFile = StreamSupport.stream(captor.getValue().spliterator(), false)
+                .findFirst()
+                .orElseThrow();
+        assertThat(savedFile.getFileType()).isEqualTo(FileType.INFRA);
+        assertThat(savedFile.getLanguage()).isEqualTo("terraform");
+        verify(infraVulnerabilityRepository).save(any(InfraVulnerability.class));
     }
 
     private AnalysisCallbackFinding finding(String severity, String filePath) {

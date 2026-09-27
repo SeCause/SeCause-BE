@@ -11,6 +11,9 @@ import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
 import org.springframework.web.servlet.HandlerInterceptor;
 
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+
 @Component
 @RequiredArgsConstructor
 public class InternalCallbackInterceptor implements HandlerInterceptor {
@@ -28,7 +31,7 @@ public class InternalCallbackInterceptor implements HandlerInterceptor {
     ) throws Exception {
         String internalToken = analysisCallbackProperties.internalToken();
         String requestToken = request.getHeader(INTERNAL_TOKEN_HEADER);
-        if (internalToken.equals(requestToken)) {
+        if (matches(internalToken, requestToken)) {
             return true;
         }
 
@@ -40,5 +43,16 @@ public class InternalCallbackInterceptor implements HandlerInterceptor {
                 ApiResponse.onFailure(GlobalErrorCode.UNAUTHORIZED, null)
         );
         return false;
+    }
+
+    private boolean matches(String expectedToken, String actualToken) {
+        if (expectedToken == null || actualToken == null) {
+            return false;
+        }
+
+        return MessageDigest.isEqual(
+                expectedToken.getBytes(StandardCharsets.UTF_8),
+                actualToken.getBytes(StandardCharsets.UTF_8)
+        );
     }
 }

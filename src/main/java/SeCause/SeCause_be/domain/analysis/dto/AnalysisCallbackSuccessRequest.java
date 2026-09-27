@@ -6,6 +6,7 @@ import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
 
 import java.util.List;
+import java.util.Objects;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
 public record AnalysisCallbackSuccessRequest(
@@ -27,6 +28,12 @@ public record AnalysisCallbackSuccessRequest(
         AnalysisCallbackSummary summary
 ) {
     public AnalysisCallbackSuccessRequest {
-        failedScanners = failedScanners == null ? List.of() : List.copyOf(failedScanners);
+        failedScanners = failedScanners == null
+                ? List.of()
+                : failedScanners.stream()
+                        .filter(Objects::nonNull)
+                        .map(String::trim)
+                        .filter(scanner -> !scanner.isEmpty())
+                        .toList();
     }
 }
