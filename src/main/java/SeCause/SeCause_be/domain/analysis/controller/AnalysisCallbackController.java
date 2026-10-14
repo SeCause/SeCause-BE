@@ -1,6 +1,7 @@
 package SeCause.SeCause_be.domain.analysis.controller;
 
 import SeCause.SeCause_be.domain.analysis.dto.AnalysisCallbackFailureRequest;
+import SeCause.SeCause_be.domain.analysis.dto.AnalysisProgressRequest;
 import SeCause.SeCause_be.domain.analysis.dto.AnalysisCallbackSuccessRequest;
 import SeCause.SeCause_be.domain.analysis.service.AnalysisCallbackService;
 import SeCause.SeCause_be.global.apiPayload.response.ApiResponse;
@@ -18,6 +19,15 @@ import org.springframework.web.bind.annotation.RestController;
 public class AnalysisCallbackController {
 
     private final AnalysisCallbackService analysisCallbackService;
+
+    @PostMapping("/{analysisId}/progress")
+    public ApiResponse<Void> handleProgress(
+            @PathVariable Long analysisId,
+            @RequestBody @Valid AnalysisProgressRequest request
+    ) {
+        analysisCallbackService.handleProgress(analysisId, request);
+        return ApiResponse.onSuccess("분석 진행률 콜백 처리가 완료됐습니다.");
+    }
 
     @PostMapping("/{analysisId}/result")
     public ApiResponse<Void> handleSuccess(
