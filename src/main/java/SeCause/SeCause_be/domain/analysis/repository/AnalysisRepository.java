@@ -6,6 +6,7 @@ import jakarta.persistence.LockModeType;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Lock;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -26,6 +27,20 @@ public interface AnalysisRepository extends JpaRepository<Analysis, Long> {
 
     @EntityGraph(attributePaths = {"repository", "repository.user"})
     Optional<Analysis> findWithRepositoryAndUserByAnalysisId(Long analysisId);
+
+    @Modifying(flushAutomatically = true, clearAutomatically = true)
+    @Query("""
+            update Analysis analysis
+            set  analysis.progressPercent = :progress
+            where  analysis.analysisId = :analysisId
+              and  analysis.analysisStatus = :status
+              and  analysis.progressPercent < :progress
+            """)
+    int updateProgressIfIncreasing(
+            @Param("analysisId") Long analysisId,
+            @Param("status") AnalysisStatus status,
+            @Param("progress") int progress
+    );
 
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @EntityGraph(attributePaths = "repository")

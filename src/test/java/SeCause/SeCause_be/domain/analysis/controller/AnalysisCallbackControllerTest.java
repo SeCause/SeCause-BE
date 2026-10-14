@@ -1,6 +1,7 @@
 package SeCause.SeCause_be.domain.analysis.controller;
 
 import SeCause.SeCause_be.domain.analysis.dto.AnalysisCallbackFailureRequest;
+import SeCause.SeCause_be.domain.analysis.dto.AnalysisProgressRequest;
 import SeCause.SeCause_be.domain.analysis.dto.AnalysisCallbackSuccessRequest;
 import SeCause.SeCause_be.domain.analysis.service.AnalysisCallbackService;
 import org.junit.jupiter.api.BeforeEach;
@@ -48,6 +49,25 @@ class AnalysisCallbackControllerTest {
     void setUp() {
         service = mock(AnalysisCallbackService.class);
         mockMvc = MockMvcBuilders.standaloneSetup(new AnalysisCallbackController(service)).build();
+    }
+
+    @Test
+    void receivesProgressCallbackJson() throws Exception {
+        mockMvc.perform(post("/api/internal/analyses/1/progress")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"progressPercent\":45}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.isSuccess").value(true));
+        verify(service).handleProgress(1L, new AnalysisProgressRequest(45));
+    }
+
+    @Test
+    void rejectsInvalidProgress() throws Exception {
+        for (String body : new String[]{"{}", "{\"progressPercent\":-1}", "{\"progressPercent\":101}"}) {
+            mockMvc.perform(post("/api/internal/analyses/1/progress")
+                            .contentType(MediaType.APPLICATION_JSON).content(body))
+                    .andExpect(status().isBadRequest());
+        }
     }
 
     @Test

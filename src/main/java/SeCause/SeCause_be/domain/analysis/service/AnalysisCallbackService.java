@@ -1,6 +1,7 @@
 package SeCause.SeCause_be.domain.analysis.service;
 
 import SeCause.SeCause_be.domain.analysis.dto.AnalysisCallbackFailureRequest;
+import SeCause.SeCause_be.domain.analysis.dto.AnalysisProgressRequest;
 import SeCause.SeCause_be.domain.analysis.dto.AnalysisCallbackSuccessRequest;
 import SeCause.SeCause_be.domain.analysis.entity.Analysis;
 import SeCause.SeCause_be.domain.analysis.entity.AnalysisStatus;
@@ -26,6 +27,20 @@ public class AnalysisCallbackService {
 
     private final AnalysisRepository analysisRepository;
     private final AnalysisFindingPersistenceService analysisFindingPersistenceService;
+
+    @Transactional
+    public void handleProgress(Long analysisId, AnalysisProgressRequest request) {
+        Integer progress = request.progressPercent();
+        if (progress == null || progress < 0 || progress > 100) {
+            throw new AnalysisException(AnalysisErrorCode.ANALYSIS_CALLBACK_INVALID_PAYLOAD);
+        }
+        if (!analysisRepository.existsById(analysisId)) {
+            throw new AnalysisException(AnalysisErrorCode.ANALYSIS_RESULT_NOT_FOUND);
+        }
+
+        // 중복·역행·종료 후 요청은 갱신하지 않고 성공 처리한다.
+        analysisRepository.updateProgressIfIncreasing(analysisId, AnalysisStatus.IN_PROGRESS, progress);
+    }
 
     @Transactional
     public void handleSuccess(Long analysisId, AnalysisCallbackSuccessRequest request) {
