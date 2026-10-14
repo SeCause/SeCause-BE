@@ -11,6 +11,7 @@ import SeCause.SeCause_be.domain.analysis.validator.AnalysisRequestValidator;
 import SeCause.SeCause_be.domain.projectRepository.entity.ProjectRepository;
 import SeCause.SeCause_be.domain.projectRepository.repository.ProjectRepositoryRepository;
 import SeCause.SeCause_be.domain.user.entity.User;
+import SeCause.SeCause_be.domain.user.validator.UserValidator;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -23,6 +24,7 @@ public class AnalysisRequestPersistenceService {
     private final AnalysisRepository analysisRepository;
     private final AnalysisRequestQueuePublisher analysisRequestQueuePublisher;
     private final AnalysisRequestValidator analysisRequestValidator;
+    private final UserValidator userValidator;
 
     @Transactional
     public AnalysisRequestCreateResponse saveAnalysisRequest(
@@ -30,10 +32,11 @@ public class AnalysisRequestPersistenceService {
             GithubRepositoryResponse githubRepository,
             AnalysisRequestCreateRequest request
     ) {
+        User currentUser = userValidator.validateUserForUpdate(user.getUserId());
         analysisRequestValidator.validateNoActiveAnalysis(user.getUserId(), githubRepository.cloneUrl(), request.branch());
 
         ProjectRepository repository = projectRepositoryRepository.save(ProjectRepository.create(
-                user,
+                currentUser,
                 githubRepository.owner().login(),
                 githubRepository.name(),
                 githubRepository.description(),

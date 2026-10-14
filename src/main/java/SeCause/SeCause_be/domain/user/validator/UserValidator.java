@@ -17,4 +17,9 @@ public class UserValidator {
         return userRepository.findById(userId)
                 .orElseThrow(() -> new UserException(UserErrorCode.USER_NOT_FOUND));
     }
+
+    public User validateUserForUpdate(Long userId) {
+        return userRepository.findForUpdateByUserId(userId)
+                .orElseThrow(() -> new UserException(UserErrorCode.USER_NOT_FOUND));
+    }
 }

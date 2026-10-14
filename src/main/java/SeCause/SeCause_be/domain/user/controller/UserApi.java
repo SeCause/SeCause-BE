@@ -13,11 +13,52 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.RequestBody;
 
 @Tag(name = "User", description = "사용자 API")
 public interface UserApi {
+
+    @Operation(
+            summary = "회원탈퇴",
+            description = """
+                    access_token 쿠키로 인증된 회원을 탈퇴 처리합니다.
+                    회원 정보와 소유 저장소, 파일, 분석 및 취약점 데이터를 영구 삭제합니다.
+                    이미 삭제 처리한 저장소도 포함되며, 실제 GitHub 저장소는 삭제하지 않습니다.
+                    성공 시 access_token과 refresh_token 쿠키를 만료시킵니다.
+                    탈퇴 이후 기존 토큰은 사용할 수 없으며 GitHub 로그인 시 신규 가입됩니다.
+                    """,
+            security = @SecurityRequirement(name = "Cookie Authentication")
+    )
+    @io.swagger.v3.oas.annotations.responses.ApiResponse(
+            responseCode = "200",
+            description = "회원탈퇴 성공 및 인증 쿠키 만료",
+            content = @Content(
+                    schema = @Schema(implementation = ApiResponse.class),
+                    examples = @ExampleObject(value = """
+                            {
+                              "isSuccess": true,
+                              "code": "COMMON2000",
+                              "message": "회원탈퇴가 완료됐습니다."
+                            }
+                            """)
+            )
+    )
+    @io.swagger.v3.oas.annotations.responses.ApiResponse(
+            responseCode = "401",
+            description = "인증 실패 또는 이미 탈퇴한 회원의 요청",
+            content = @Content(schema = @Schema(implementation = ApiResponse.class))
+    )
+    @io.swagger.v3.oas.annotations.responses.ApiResponse(
+            responseCode = "404",
+            description = "인증 이후 동시 탈퇴 등으로 회원이 삭제된 경우 (USER404)",
+            content = @Content(schema = @Schema(implementation = ApiResponse.class))
+    )
+    ResponseEntity<ApiResponse<Void>> withdraw(
+            @Parameter(hidden = true)
+            @AuthenticationPrincipal UserPrincipal userPrincipal
+    );
 
     @Operation(
             summary = "내 정보 조회",

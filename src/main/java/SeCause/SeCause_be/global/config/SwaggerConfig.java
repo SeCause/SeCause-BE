@@ -32,7 +32,11 @@ public class SwaggerConfig {
                         .name(jwtSchemeName)
                         .type(SecurityScheme.Type.HTTP)
                         .scheme("bearer")
-                        .bearerFormat("JWT"));
+                        .bearerFormat("JWT"))
+                .addSecuritySchemes("Cookie Authentication", new SecurityScheme()
+                        .name("access_token")
+                        .type(SecurityScheme.Type.APIKEY)
+                        .in(SecurityScheme.In.COOKIE));
 
         Server prodServer = new Server().url(prodServerUrl).description("운영 서버 (HTTPS)");
         Server localServer = new Server().url("http://localhost:8080").description("로컬 테스트용 (HTTP)");
