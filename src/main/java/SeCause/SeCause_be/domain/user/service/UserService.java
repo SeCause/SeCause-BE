@@ -31,7 +31,8 @@ public class UserService {
 
     @Transactional
     public void updateRefreshTokenHash(User user, String refreshTokenHash) {
-        user.updateRefreshTokenHash(refreshTokenHash);
+        User currentUser = userValidator.validateUserForUpdate(user.getUserId());
+        currentUser.updateRefreshTokenHash(refreshTokenHash);
     }
 
     @Transactional(readOnly = true)

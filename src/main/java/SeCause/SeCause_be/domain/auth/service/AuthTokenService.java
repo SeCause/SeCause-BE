@@ -53,7 +53,7 @@ public class AuthTokenService {
             }
 
             Long userId = jwtTokenProvider.getRefreshTokenUserId(refreshToken);
-            User user = userRepository.findById(userId)
+            User user = userRepository.findForUpdateByUserId(userId)
                     .orElseThrow(this::invalidRefreshToken);
 
             if (!refreshTokenHasher.matches(refreshToken, user.getRefreshTokenHash())) {
