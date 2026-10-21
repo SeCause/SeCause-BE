@@ -5,7 +5,6 @@ import SeCause.SeCause_be.domain.analysis.entity.QAnalysisResult;
 import SeCause.SeCause_be.domain.projectRepository.dto.RepositorySeverityCountResponse;
 import SeCause.SeCause_be.domain.projectRepository.dto.RepositorySummaryResponse;
 import SeCause.SeCause_be.domain.projectRepository.entity.QProjectRepository;
-import SeCause.SeCause_be.domain.projectRepository.entity.QRepositoryFile;
 import SeCause.SeCause_be.domain.vulnerability.entity.QVulnerability;
 import SeCause.SeCause_be.domain.vulnerability.entity.Severity;
 import com.querydsl.core.BooleanBuilder;
@@ -16,7 +15,6 @@ import com.querydsl.jpa.impl.JPAQueryFactory;
 import lombok.RequiredArgsConstructor;
 import org.springframework.util.StringUtils;
 
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.EnumMap;
 import java.util.LinkedHashMap;
@@ -30,7 +28,6 @@ public class ProjectRepositoryRepositoryImpl implements ProjectRepositoryReposit
     private static final QProjectRepository projectRepository = QProjectRepository.projectRepository;
     private static final QAnalysis analysis = QAnalysis.analysis;
     private static final QAnalysisResult analysisResult = QAnalysisResult.analysisResult;
-    private static final QRepositoryFile repositoryFile = QRepositoryFile.repositoryFile;
     private static final QVulnerability vulnerability = QVulnerability.vulnerability;
     private static final NumberExpression<Long> issueCount = analysisResult.count();
 
@@ -159,26 +156,13 @@ public class ProjectRepositoryRepositoryImpl implements ProjectRepositoryReposit
 
         Map<Long, List<String>> languagesByRepository = new LinkedHashMap<>();
 
-        queryFactory
-                .select(repositoryFile.repository.repositoryId, repositoryFile.language)
-                .distinct()
-                .from(repositoryFile)
-                .where(
-                        repositoryFile.repository.repositoryId.in(repositoryIds),
-                        repositoryFile.language.isNotNull(),
-                        repositoryFile.language.isNotEmpty()
-                )
-                .orderBy(
-                        repositoryFile.repository.repositoryId.asc(),
-                        repositoryFile.language.asc()
-                )
+        queryFactory.selectFrom(projectRepository)
+                .where(projectRepository.repositoryId.in(repositoryIds))
                 .fetch()
-                .forEach(tuple -> languagesByRepository
-                        .computeIfAbsent(
-                                tuple.get(repositoryFile.repository.repositoryId),
-                                ignored -> new ArrayList<>()
-                        )
-                        .add(tuple.get(repositoryFile.language)));
+                .forEach(repository -> languagesByRepository.put(
+                        repository.getRepositoryId(),
+                        repository.getLanguages() == null ? List.of() : repository.getLanguages()
+                ));
 
         return languagesByRepository;
     }
