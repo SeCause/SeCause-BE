@@ -11,6 +11,7 @@ public interface AnalysisResultRepositoryCustom {
     RepositoryIssueListResponse findRepositoryIssues(
             Long repositoryId,
             Long userId,
+            Long repositoryFileId,
             Severity severity,
             Pageable pageable
     );
