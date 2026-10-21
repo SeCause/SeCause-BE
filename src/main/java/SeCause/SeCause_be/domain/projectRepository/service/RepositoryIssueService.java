@@ -25,6 +25,7 @@ public class RepositoryIssueService {
     public RepositoryIssueListResponse getRepositoryIssues(
             Long repositoryId,
             Long userId,
+            Long repositoryFileId,
             RepositoryIssueSeverity severity,
             int page,
             int size
@@ -36,6 +37,7 @@ public class RepositoryIssueService {
         return analysisResultRepository.findRepositoryIssues(
                 repositoryId,
                 userId,
+                repositoryFileId,
                 severityFilter,
                 pageRequest
         );

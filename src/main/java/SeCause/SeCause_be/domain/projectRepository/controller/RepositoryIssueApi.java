@@ -25,7 +25,7 @@ public interface RepositoryIssueApi {
 
     @Operation(
             summary = "레포지토리 이슈 목록 조회",
-            description = "레포지토리 분석 결과에서 발견된 코드/인프라 보안 이슈 목록을 취약도 기준으로 필터링하여 페이지네이션 조회합니다.",
+            description = "레포지토리 분석 결과에서 발견된 코드/인프라 보안 이슈 목록을 파일 ID와 취약도 기준으로 필터링하여 페이지네이션 조회합니다. 파일 ID를 생략하면 전체 파일의 이슈를 조회하며, 전체 개수와 페이지 수에도 동일한 필터가 적용됩니다.",
             security = @SecurityRequirement(name = "Bearer Authentication"),
             parameters = {
                     @Parameter(
@@ -34,6 +34,12 @@ public interface RepositoryIssueApi {
                             required = true,
                             in = ParameterIn.PATH,
                             example = "1"
+                    ),
+                    @Parameter(
+                            name = "repositoryFileId",
+                            description = "선택한 파일 ID. 생략하면 전체 파일을 조회합니다.",
+                            in = ParameterIn.QUERY,
+                            example = "33"
                     ),
                     @Parameter(
                             name = "severity",
@@ -150,6 +156,8 @@ public interface RepositoryIssueApi {
             @AuthenticationPrincipal UserPrincipal userPrincipal,
 
             @PathVariable Long repositoryId,
+
+            @RequestParam(required = false) Long repositoryFileId,
 
             @RequestParam(defaultValue = "ALL") RepositoryIssueSeverity severity,
 

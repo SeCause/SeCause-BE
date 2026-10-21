@@ -47,10 +47,12 @@ public class AnalysisResultRepositoryImpl implements AnalysisResultRepositoryCus
     public RepositoryIssueListResponse findRepositoryIssues(
             Long repositoryId,
             Long userId,
+            Long repositoryFileId,
             Severity severity,
             Pageable pageable
     ) {
         List<Tuple> tuples = baseQuery(repositoryId, userId, severity)
+                .where(repositoryFileId == null ? null : repositoryFile.repositoryFileId.eq(repositoryFileId))
                 .select(
                         analysisResult.analysisResultId,
                         vulnerability.vulnerabilityType,
@@ -66,6 +68,7 @@ public class AnalysisResultRepositoryImpl implements AnalysisResultRepositoryCus
                 .fetch();
 
         Long totalElements = baseQuery(repositoryId, userId, severity)
+                .where(repositoryFileId == null ? null : repositoryFile.repositoryFileId.eq(repositoryFileId))
                 .select(analysisResult.count())
                 .fetchOne();
 

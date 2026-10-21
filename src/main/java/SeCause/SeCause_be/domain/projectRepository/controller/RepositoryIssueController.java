@@ -31,6 +31,7 @@ public class RepositoryIssueController implements RepositoryIssueApi {
     public ApiResponse<RepositoryIssueListResponse> getRepositoryIssues(
             @AuthenticationPrincipal UserPrincipal userPrincipal,
             @PathVariable Long repositoryId,
+            @RequestParam(required = false) Long repositoryFileId,
             @RequestParam(defaultValue = "ALL") RepositoryIssueSeverity severity,
             @RequestParam(defaultValue = "1") @Min(value = 1, message = "페이지 번호는 1 이상이어야 합니다.") int page,
             @RequestParam(defaultValue = "20") @Min(value = 1, message = "페이지 크기는 1 이상이어야 합니다.")
@@ -39,6 +40,7 @@ public class RepositoryIssueController implements RepositoryIssueApi {
         RepositoryIssueListResponse response = repositoryIssueService.getRepositoryIssues(
                 repositoryId,
                 userPrincipal.userId(),
+                repositoryFileId,
                 severity,
                 page,
                 size
