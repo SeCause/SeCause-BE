@@ -53,3 +53,7 @@ ALTER TABLE repositories
 
 ALTER TABLE vulnerabilities
     ADD COLUMN IF NOT EXISTS cwe_id VARCHAR(30)@@
+
+-- NULL means code statistics have not been supplied by the analysis server.
+ALTER TABLE repositories
+    ADD COLUMN IF NOT EXISTS languages JSONB@@

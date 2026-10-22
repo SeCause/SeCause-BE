@@ -11,6 +11,10 @@ import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
+import java.util.List;
+
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -54,6 +58,10 @@ public class ProjectRepository extends BaseEntity {
     @Column(name = "line_count", nullable = false)
     private long lineCount = 0L;
 
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(name = "languages", columnDefinition = "jsonb")
+    private List<String> languages;
+
     private ProjectRepository(
             User user,
             String owner,
@@ -91,6 +99,11 @@ public class ProjectRepository extends BaseEntity {
     public void updateAnalysisMetrics(int totalFiles, long lineCount) {
         this.totalFiles = totalFiles;
         this.lineCount = lineCount;
+    }
+
+    public void updateCodeDetails(int totalFiles, long lineCount, List<String> languages) {
+        updateAnalysisMetrics(totalFiles, lineCount);
+        this.languages = languages.stream().map(String::trim).distinct().sorted().toList();
     }
 
     public void delete() {

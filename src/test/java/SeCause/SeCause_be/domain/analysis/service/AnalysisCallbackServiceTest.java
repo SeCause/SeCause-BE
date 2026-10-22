@@ -119,6 +119,44 @@ class AnalysisCallbackServiceTest {
         verifyNoInteractions(analysisFindingPersistenceService);
     }
 
+    @Test
+    void storesFullRepositoryMetricsEvenWithoutFindingsAndIgnoresDuplicate() throws Exception {
+        Analysis analysis = createAnalysis();
+        var request = objectMapper.readValue("""
+                {"analysisId":1,"repositoryId":1,"status":"COMPLETED","findings":[],
+                 "codeDetails":{"fileCount":42,"lineCount":1000,"languages":[" Java ","Python","Java"]}}
+                """, AnalysisCallbackSuccessRequest.class);
+        when(analysisRepository.findForUpdateWithRepositoryByAnalysisId(1L)).thenReturn(Optional.of(analysis));
+        service.handleSuccess(1L, request);
+        var duplicate = objectMapper.readValue("""
+                {"analysisId":1,"repositoryId":1,"status":"COMPLETED","findings":[],
+                 "codeDetails":{"fileCount":0,"lineCount":0,"languages":[]}}
+                """, AnalysisCallbackSuccessRequest.class);
+        service.handleSuccess(1L, duplicate);
+        assertThat(analysis.getRepository().getTotalFiles()).isEqualTo(42);
+        assertThat(analysis.getRepository().getLineCount()).isEqualTo(1000);
+        assertThat(analysis.getRepository().getLanguages()).containsExactly("Java", "Python");
+        verify(analysisFindingPersistenceService).saveAll(analysis, request.findings());
+    }
+
+    @Test
+    void validatesCodeDetailsAndAcceptsLegacyPayload() throws Exception {
+        try (var factory = jakarta.validation.Validation.buildDefaultValidatorFactory()) {
+            var validator = factory.getValidator();
+            var legacy = objectMapper.readValue(SUCCESS_JSON, AnalysisCallbackSuccessRequest.class);
+            assertThat(validator.validate(legacy)).isEmpty();
+            var invalid = objectMapper.readValue("""
+                    {"analysisId":1,"repositoryId":1,"status":"COMPLETED", "codeDetails":
+                     {"fileCount":-1,"lineCount":-2,"languages":[" ",null]}}
+                    """, AnalysisCallbackSuccessRequest.class);
+            assertThat(validator.validate(invalid)).hasSize(4);
+            var incomplete = objectMapper.readValue("""
+                    {"analysisId":1,"repositoryId":1,"status":"COMPLETED","codeDetails":{}}
+                    """, AnalysisCallbackSuccessRequest.class);
+            assertThat(validator.validate(incomplete)).hasSize(3);
+        }
+    }
+
     private Analysis createAnalysis() {
         User user = User.createGithubUser(1L, "octocat", "octocat@example.com", "Octocat", "token", null);
         ProjectRepository repository = ProjectRepository.create(

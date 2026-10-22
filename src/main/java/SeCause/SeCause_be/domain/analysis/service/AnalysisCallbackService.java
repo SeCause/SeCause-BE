@@ -56,6 +56,10 @@ public class AnalysisCallbackService {
         }
 
         analysisFindingPersistenceService.saveAll(analysis, request.findings());
+        if (request.codeDetails() != null) {
+            var details = request.codeDetails();
+            analysis.getRepository().updateCodeDetails(details.fileCount(), details.lineCount(), details.languages());
+        }
         recordFailedScanners(analysisId, analysis, request.failedScanners());
         analysis.complete();
     }
