@@ -4,6 +4,8 @@ import SeCause.SeCause_be.domain.analysis.client.FastApiAnalysisClient;
 import SeCause.SeCause_be.domain.analysis.dto.FastApiAnalysisRequest;
 import SeCause.SeCause_be.domain.analysis.entity.Analysis;
 import SeCause.SeCause_be.domain.analysis.exception.AnalysisException;
+import SeCause.SeCause_be.domain.analysis.queue.AnalysisRequestQueueConsumer;
+import SeCause.SeCause_be.domain.analysis.queue.AnalysisRequestQueueMessage;
 import SeCause.SeCause_be.domain.analysis.repository.AnalysisRepository;
 import SeCause.SeCause_be.domain.projectRepository.entity.ProjectRepository;
 import SeCause.SeCause_be.domain.user.entity.User;
@@ -23,8 +25,8 @@ class AnalysisDispatchServiceTest {
 
     private final AnalysisRepository repository = mock(AnalysisRepository.class);
     private final FastApiAnalysisClient client = mock(FastApiAnalysisClient.class);
-    private final AnalysisDispatchService service = new AnalysisDispatchService(repository, client,
-            TransactionTestSupport.proxy(new AnalysisDispatchQueryService(repository)));
+    private final AnalysisDispatchService service = TransactionTestSupport.proxy(
+            new AnalysisDispatchService(repository, client));
 
     @Test
     void readsRequestInTransactionAndSendsAfterTransactionEnds() {
@@ -33,6 +35,7 @@ class AnalysisDispatchServiceTest {
         ReflectionTestUtils.setField(project, "repositoryId", 2L);
         Analysis analysis = Analysis.create(project);
         ReflectionTestUtils.setField(analysis, "analysisId", 3L);
+        when(repository.findById(3L)).thenReturn(Optional.of(analysis));
         when(repository.findWithRepositoryAndUserByAnalysisId(3L)).thenAnswer(invocation -> {
             assertThat(TransactionSynchronizationManager.isActualTransactionActive()).isTrue();
             assertThat(TransactionSynchronizationManager.isCurrentTransactionReadOnly()).isTrue();
@@ -45,7 +48,7 @@ class AnalysisDispatchServiceTest {
             return null;
         }).when(client).requestAnalysis(any());
 
-        service.dispatch(3L);
+        new AnalysisRequestQueueConsumer(service).consume(new AnalysisRequestQueueMessage(3L));
 
         verify(client).requestAnalysis(any());
     }
@@ -54,7 +57,7 @@ class AnalysisDispatchServiceTest {
     void missingAnalysisDoesNotSendRequest() {
         when(repository.findWithRepositoryAndUserByAnalysisId(3L)).thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> service.dispatch(3L)).isInstanceOf(AnalysisException.class);
+        assertThatThrownBy(() -> service.createFastApiRequest(3L)).isInstanceOf(AnalysisException.class);
 
         verifyNoInteractions(client);
         assertThat(TransactionSynchronizationManager.isActualTransactionActive()).isFalse();
