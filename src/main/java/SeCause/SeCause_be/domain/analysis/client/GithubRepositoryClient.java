@@ -31,35 +31,18 @@ public class GithubRepositoryClient {
     private final WebClient webClient;
 
     public GithubUserAccountResponse getUserAccount(String githubToken) {
-        try {
-            return webClient.get()
-                    .uri(builder -> builder
-                            .scheme("https")
-                            .host("api.github.com")
-                            .path("/user")
-                            .build())
-                    .header(HttpHeaders.AUTHORIZATION, "Bearer " + githubToken)
-                    .accept(MediaType.APPLICATION_JSON)
-                    .retrieve()
-                    .bodyToMono(GithubUserAccountResponse.class)
-                    .block();
-        } catch (WebClientResponseException.Unauthorized exception) {
-            throw new AnalysisException(AnalysisErrorCode.GITHUB_TOKEN_INVALID);
-        } catch (WebClientResponseException.Forbidden exception) {
-            throw new AnalysisException(AnalysisErrorCode.GITHUB_API_FORBIDDEN);
-        } catch (WebClientResponseException exception) {
-            throw new AnalysisException(AnalysisErrorCode.GITHUB_API_REQUEST_FAILED);
-        } catch (WebClientException exception) {
-            throw new AnalysisException(AnalysisErrorCode.GITHUB_API_REQUEST_FAILED);
-        }
+        return getResponse(
+                githubToken,
+                builder -> builder.path("/user").build(),
+                ParameterizedTypeReference.forType(GithubUserAccountResponse.class),
+                AnalysisErrorCode.GITHUB_API_REQUEST_FAILED
+        );
     }
 
     public List<GithubAccountResponse> getUserOrganizations(String githubToken) {
         return getPagedList(
                 githubToken,
                 (builder, page) -> builder
-                        .scheme("https")
-                        .host("api.github.com")
                         .path("/user/orgs")
                         .queryParam("per_page", PER_PAGE_LIMIT)
                         .queryParam("page", page)
@@ -73,8 +56,6 @@ public class GithubRepositoryClient {
         return getPagedList(
                 githubToken,
                 (builder, page) -> builder
-                        .scheme("https")
-                        .host("api.github.com")
                         .path("/user/repos")
                         .queryParam("affiliation", "owner")
                         .queryParam("per_page", PER_PAGE_LIMIT)
@@ -89,8 +70,6 @@ public class GithubRepositoryClient {
         return getPagedList(
                 githubToken,
                 (builder, page) -> builder
-                        .scheme("https")
-                        .host("api.github.com")
                         .path("/orgs/{organization}/repos")
                         .queryParam("type", "all")
                         .queryParam("per_page", PER_PAGE_LIMIT)
@@ -105,8 +84,6 @@ public class GithubRepositoryClient {
         return getObject(
                 githubToken,
                 builder -> builder
-                        .scheme("https")
-                        .host("api.github.com")
                         .path("/repos/{owner}/{repository}")
                         .build(owner, repository),
                 GithubRepositoryResponse.class,
@@ -118,8 +95,6 @@ public class GithubRepositoryClient {
         return getPagedList(
                 githubToken,
                 (builder, page) -> builder
-                        .scheme("https")
-                        .host("api.github.com")
                         .path("/repos/{owner}/{repository}/branches")
                         .queryParam("per_page", PER_PAGE_LIMIT)
                         .queryParam("page", page)
@@ -138,8 +113,6 @@ public class GithubRepositoryClient {
         getObject(
                 githubToken,
                 builder -> builder
-                        .scheme("https")
-                        .host("api.github.com")
                         .path("/repos/{owner}/{repository}/branches/{branch}")
                         .build(owner, repository, branch),
                 GithubBranchResponse.class,
@@ -153,29 +126,11 @@ public class GithubRepositoryClient {
             Class<T> responseType,
             AnalysisErrorCode notFoundCode
     ) {
-        try {
-            T response = webClient.get()
-                    .uri(uriFunction)
-                    .header(HttpHeaders.AUTHORIZATION, "Bearer " + githubToken)
-                    .accept(MediaType.APPLICATION_JSON)
-                    .retrieve()
-                    .bodyToMono(responseType)
-                    .block();
-
-            if (response == null) {
-                throw new AnalysisException(notFoundCode);
-            }
-
-            return response;
-        } catch (WebClientResponseException.Unauthorized exception) {
-            throw new AnalysisException(AnalysisErrorCode.GITHUB_TOKEN_INVALID);
-        } catch (WebClientResponseException.Forbidden exception) {
-            throw new AnalysisException(AnalysisErrorCode.GITHUB_API_FORBIDDEN);
-        } catch (WebClientResponseException.NotFound exception) {
+        T response = getResponse(githubToken, uriFunction, ParameterizedTypeReference.forType(responseType), notFoundCode);
+        if (response == null) {
             throw new AnalysisException(notFoundCode);
-        } catch (WebClientException exception) {
-            throw new AnalysisException(AnalysisErrorCode.GITHUB_API_REQUEST_FAILED);
         }
+        return response;
     }
 
     private <T> List<T> getPagedList(
@@ -206,20 +161,30 @@ public class GithubRepositoryClient {
             Function<UriBuilder, URI> uriFunction,
             ParameterizedTypeReference<List<T>> responseType
     ) {
+        List<T> response = getResponse(githubToken, uriFunction, responseType, AnalysisErrorCode.GITHUB_API_REQUEST_FAILED);
+        return response == null ? List.of() : response;
+    }
+
+    private <T> T getResponse(
+            String githubToken,
+            Function<UriBuilder, URI> uriFunction,
+            ParameterizedTypeReference<T> responseType,
+            AnalysisErrorCode notFoundCode
+    ) {
         try {
-            List<T> response = webClient.get()
-                    .uri(uriFunction)
+            return webClient.get()
+                    .uri(builder -> uriFunction.apply(builder.scheme("https").host("api.github.com")))
                     .header(HttpHeaders.AUTHORIZATION, "Bearer " + githubToken)
                     .accept(MediaType.APPLICATION_JSON)
                     .retrieve()
                     .bodyToMono(responseType)
                     .block();
-
-            return response == null ? List.of() : response;
         } catch (WebClientResponseException.Unauthorized exception) {
             throw new AnalysisException(AnalysisErrorCode.GITHUB_TOKEN_INVALID);
         } catch (WebClientResponseException.Forbidden exception) {
             throw new AnalysisException(AnalysisErrorCode.GITHUB_API_FORBIDDEN);
+        } catch (WebClientResponseException.NotFound exception) {
+            throw new AnalysisException(notFoundCode);
         } catch (WebClientException exception) {
             throw new AnalysisException(AnalysisErrorCode.GITHUB_API_REQUEST_FAILED);
         }

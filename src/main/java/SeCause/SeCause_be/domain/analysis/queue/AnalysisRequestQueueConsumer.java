@@ -1,5 +1,6 @@
 package SeCause.SeCause_be.domain.analysis.queue;
 
+import SeCause.SeCause_be.domain.analysis.dto.FastApiAnalysisRequest;
 import SeCause.SeCause_be.domain.analysis.exception.AnalysisException;
 import SeCause.SeCause_be.domain.analysis.exception.code.AnalysisErrorCode;
 import SeCause.SeCause_be.domain.analysis.service.AnalysisDispatchService;
@@ -17,7 +18,9 @@ public class AnalysisRequestQueueConsumer {
     public void consume(AnalysisRequestQueueMessage message) {
         try {
             analysisDispatchService.markInProgress(message.analysisId());
-            analysisDispatchService.dispatch(message.analysisId());
+            // 조회 트랜잭션이 종료된 뒤 외부 API를 호출한다.
+            FastApiAnalysisRequest request = analysisDispatchService.createFastApiRequest(message.analysisId());
+            analysisDispatchService.dispatch(request);
         } catch (AnalysisException exception) {
             analysisDispatchService.markFailed(message.analysisId(), exception.getMessage());
             log.error("Failed to dispatch analysis request. analysisId={}", message.analysisId(), exception);

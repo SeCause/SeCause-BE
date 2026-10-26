@@ -58,9 +58,9 @@ public class Analysis extends BaseEntity {
         return new Analysis(repository);
     }
 
-    public void updateProgress(AnalysisStatus analysisStatus, int progressPercent) {
-        this.analysisStatus = analysisStatus;
-        this.progressPercent = progressPercent;
+    public void start() {
+        this.analysisStatus = AnalysisStatus.IN_PROGRESS;
+        this.progressPercent = 0;
     }
 
     public void complete() {

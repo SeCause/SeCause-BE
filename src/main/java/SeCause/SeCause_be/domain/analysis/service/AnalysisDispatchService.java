@@ -1,10 +1,9 @@
 package SeCause.SeCause_be.domain.analysis.service;
 
 import SeCause.SeCause_be.domain.analysis.client.FastApiAnalysisClient;
-import SeCause.SeCause_be.domain.analysis.exception.code.AnalysisErrorCode;
 import SeCause.SeCause_be.domain.analysis.dto.FastApiAnalysisRequest;
+import SeCause.SeCause_be.domain.analysis.exception.code.AnalysisErrorCode;
 import SeCause.SeCause_be.domain.analysis.entity.Analysis;
-import SeCause.SeCause_be.domain.analysis.entity.AnalysisStatus;
 import SeCause.SeCause_be.domain.analysis.exception.AnalysisException;
 import SeCause.SeCause_be.domain.analysis.repository.AnalysisRepository;
 import SeCause.SeCause_be.domain.projectRepository.entity.ProjectRepository;
@@ -23,16 +22,13 @@ public class AnalysisDispatchService {
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void markInProgress(Long analysisId) {
         Analysis analysis = getAnalysis(analysisId);
-        analysis.updateProgress(AnalysisStatus.IN_PROGRESS, 0);
-    }
-
-    public void dispatch(Long analysisId) {
-        fastApiAnalysisClient.requestAnalysis(createFastApiRequest(analysisId));
+        analysis.start();
     }
 
     @Transactional(readOnly = true)
     public FastApiAnalysisRequest createFastApiRequest(Long analysisId) {
-        Analysis analysis = getAnalysisWithRepositoryAndUser(analysisId);
+        Analysis analysis = analysisRepository.findWithRepositoryAndUserByAnalysisId(analysisId)
+                .orElseThrow(() -> new AnalysisException(AnalysisErrorCode.ANALYSIS_RESULT_NOT_FOUND));
         ProjectRepository repository = analysis.getRepository();
         return new FastApiAnalysisRequest(
                 analysis.getAnalysisId(),
@@ -43,6 +39,10 @@ public class AnalysisDispatchService {
         );
     }
 
+    public void dispatch(FastApiAnalysisRequest request) {
+        fastApiAnalysisClient.requestAnalysis(request);
+    }
+
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void markFailed(Long analysisId, String failureReason) {
         Analysis analysis = getAnalysis(analysisId);
@@ -51,11 +51,6 @@ public class AnalysisDispatchService {
 
     private Analysis getAnalysis(Long analysisId) {
         return analysisRepository.findById(analysisId)
-                .orElseThrow(() -> new AnalysisException(AnalysisErrorCode.ANALYSIS_RESULT_NOT_FOUND));
-    }
-
-    private Analysis getAnalysisWithRepositoryAndUser(Long analysisId) {
-        return analysisRepository.findWithRepositoryAndUserByAnalysisId(analysisId)
                 .orElseThrow(() -> new AnalysisException(AnalysisErrorCode.ANALYSIS_RESULT_NOT_FOUND));
     }
 }

@@ -1,7 +1,5 @@
 package SeCause.SeCause_be.domain.analysis.entity;
 
-import SeCause.SeCause_be.domain.vulnerability.entity.CodeVulnerability;
-import SeCause.SeCause_be.domain.vulnerability.entity.InfraVulnerability;
 import SeCause.SeCause_be.domain.vulnerability.entity.Vulnerability;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -62,25 +60,14 @@ public class AnalysisResult {
         this.fixSummary = fixSummary;
     }
 
-    public static AnalysisResult createForCodeVulnerability(
-            CodeVulnerability codeVulnerability,
+    public static AnalysisResult create(
+            Vulnerability vulnerability,
             String description,
             String summary,
             String attackScenario,
             String fixCode,
             String fixSummary
     ) {
-        return new AnalysisResult(codeVulnerability, description, summary, attackScenario, fixCode, fixSummary);
-    }
-
-    public static AnalysisResult createForInfraVulnerability(
-            InfraVulnerability infraVulnerability,
-            String description,
-            String summary,
-            String attackScenario,
-            String fixCode,
-            String fixSummary
-    ) {
-        return new AnalysisResult(infraVulnerability, description, summary, attackScenario, fixCode, fixSummary);
+        return new AnalysisResult(vulnerability, description, summary, attackScenario, fixCode, fixSummary);
     }
 }
