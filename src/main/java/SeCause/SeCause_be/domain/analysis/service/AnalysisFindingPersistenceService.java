@@ -15,6 +15,7 @@ import SeCause.SeCause_be.domain.security.repository.SecurityReferenceRepository
 import SeCause.SeCause_be.domain.vulnerability.entity.CodeVulnerability;
 import SeCause.SeCause_be.domain.vulnerability.entity.InfraVulnerability;
 import SeCause.SeCause_be.domain.vulnerability.entity.Severity;
+import SeCause.SeCause_be.domain.vulnerability.entity.Vulnerability;
 import SeCause.SeCause_be.domain.vulnerability.repository.CodeVulnerabilityRepository;
 import SeCause.SeCause_be.domain.vulnerability.repository.InfraVulnerabilityRepository;
 import lombok.RequiredArgsConstructor;
@@ -128,12 +129,12 @@ public class AnalysisFindingPersistenceService {
         return "INFRA".equalsIgnoreCase(tool) ? FileType.INFRA : FileType.SOURCE;
     }
 
-    // 코드 취약점 상세 결과 저장
+    // 취약점 상세 결과 저장
     private void saveAnalysisResult(
-            CodeVulnerability vulnerability,
+            Vulnerability vulnerability,
             AnalysisCallbackFinding finding
     ) {
-        analysisResultRepository.save(AnalysisResult.createForCodeVulnerability(
+        analysisResultRepository.save(AnalysisResult.create(
                 vulnerability,
                 defaultText(finding.rootCause(), finding.message(), finding.type()),
                 defaultText(finding.summary(), finding.message(), finding.type()),
@@ -143,47 +144,15 @@ public class AnalysisFindingPersistenceService {
         ));
     }
 
-    // 인프라 취약점 상세 결과 저장
-    private void saveAnalysisResult(
-            InfraVulnerability vulnerability,
-            AnalysisCallbackFinding finding
-    ) {
-        analysisResultRepository.save(AnalysisResult.createForInfraVulnerability(
-                vulnerability,
-                defaultText(finding.rootCause(), finding.message(), finding.type()),
-                defaultText(finding.summary(), finding.message(), finding.type()),
-                finding.impact(),
-                resolveFixCode(finding.fixExamples()),
-                finding.recommendation()
-        ));
-    }
-
-    // 코드 취약점 참고 문서 저장
+    // 취약점 참고 문서 저장
     private void saveSecurityReferences(
-            CodeVulnerability vulnerability,
+            Vulnerability vulnerability,
             List<AnalysisCallbackReferenceDocument> referenceDocuments
     ) {
         safeList(referenceDocuments).stream()
                 .filter(Objects::nonNull)
                 .filter(reference -> StringUtils.hasText(reference.url()) || StringUtils.hasText(reference.title()))
-                .map(reference -> SecurityReference.createForCodeVulnerability(
-                        vulnerability,
-                        resolveReferenceType(reference),
-                        limit(reference.title(), 500),
-                        limit(reference.url(), 1000)
-                ))
-                .forEach(securityReferenceRepository::save);
-    }
-
-    // 인프라 취약점 참고 문서 저장
-    private void saveSecurityReferences(
-            InfraVulnerability vulnerability,
-            List<AnalysisCallbackReferenceDocument> referenceDocuments
-    ) {
-        safeList(referenceDocuments).stream()
-                .filter(Objects::nonNull)
-                .filter(reference -> StringUtils.hasText(reference.url()) || StringUtils.hasText(reference.title()))
-                .map(reference -> SecurityReference.createForInfraVulnerability(
+                .map(reference -> SecurityReference.create(
                         vulnerability,
                         resolveReferenceType(reference),
                         limit(reference.title(), 500),

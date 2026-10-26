@@ -1,7 +1,5 @@
 package SeCause.SeCause_be.domain.security.entity;
 
-import SeCause.SeCause_be.domain.vulnerability.entity.CodeVulnerability;
-import SeCause.SeCause_be.domain.vulnerability.entity.InfraVulnerability;
 import SeCause.SeCause_be.domain.vulnerability.entity.Vulnerability;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -58,21 +56,12 @@ public class SecurityReference {
         this.referenceUrl = referenceUrl;
     }
 
-    public static SecurityReference createForCodeVulnerability(
-            CodeVulnerability codeVulnerability,
+    public static SecurityReference create(
+            Vulnerability vulnerability,
             ReferenceType referenceType,
             String title,
             String referenceUrl
     ) {
-        return new SecurityReference(codeVulnerability, referenceType, title, referenceUrl);
-    }
-
-    public static SecurityReference createForInfraVulnerability(
-            InfraVulnerability infraVulnerability,
-            ReferenceType referenceType,
-            String title,
-            String referenceUrl
-    ) {
-        return new SecurityReference(infraVulnerability, referenceType, title, referenceUrl);
+        return new SecurityReference(vulnerability, referenceType, title, referenceUrl);
     }
 }
