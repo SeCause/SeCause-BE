@@ -4,7 +4,6 @@ import SeCause.SeCause_be.domain.analysis.client.FastApiAnalysisClient;
 import SeCause.SeCause_be.domain.analysis.exception.code.AnalysisErrorCode;
 import SeCause.SeCause_be.domain.analysis.dto.FastApiAnalysisRequest;
 import SeCause.SeCause_be.domain.analysis.entity.Analysis;
-import SeCause.SeCause_be.domain.analysis.entity.AnalysisStatus;
 import SeCause.SeCause_be.domain.analysis.exception.AnalysisException;
 import SeCause.SeCause_be.domain.analysis.repository.AnalysisRepository;
 import SeCause.SeCause_be.domain.projectRepository.entity.ProjectRepository;
@@ -23,7 +22,7 @@ public class AnalysisDispatchService {
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void markInProgress(Long analysisId) {
         Analysis analysis = getAnalysis(analysisId);
-        analysis.updateProgress(AnalysisStatus.IN_PROGRESS, 0);
+        analysis.start();
     }
 
     public void dispatch(Long analysisId) {

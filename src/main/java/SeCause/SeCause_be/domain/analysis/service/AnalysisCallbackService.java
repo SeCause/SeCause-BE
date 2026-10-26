@@ -51,7 +51,7 @@ public class AnalysisCallbackService {
 
         Analysis analysis = getAnalysisForUpdate(analysisId);
         validateRepositoryId(analysis, request.repositoryId());
-        if (isTerminal(analysis.getAnalysisStatus())) {
+        if (analysis.getAnalysisStatus().isTerminal()) {
             return;
         }
 
@@ -73,7 +73,7 @@ public class AnalysisCallbackService {
 
         Analysis analysis = getAnalysisForUpdate(analysisId);
         validateRepositoryId(analysis, request.repositoryId());
-        if (isTerminal(analysis.getAnalysisStatus())) {
+        if (analysis.getAnalysisStatus().isTerminal()) {
             return;
         }
 
@@ -95,12 +95,6 @@ public class AnalysisCallbackService {
         if (!Objects.equals(analysis.getRepository().getRepositoryId(), repositoryId)) {
             throw new AnalysisException(AnalysisErrorCode.ANALYSIS_CALLBACK_INVALID_PAYLOAD);
         }
-    }
-
-    private boolean isTerminal(AnalysisStatus status) {
-        return status == AnalysisStatus.COMPLETED
-                || status == AnalysisStatus.FAILED
-                || status == AnalysisStatus.CANCELLED;
     }
 
     private String createFailureReason(AnalysisCallbackFailureRequest request) {

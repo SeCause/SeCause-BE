@@ -14,4 +14,8 @@ public enum AnalysisStatus {
     ;
 
     private final String description;
+
+    public boolean isTerminal() {
+        return this == COMPLETED || this == FAILED || this == CANCELLED;
+    }
 }
