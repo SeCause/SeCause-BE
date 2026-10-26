@@ -33,7 +33,7 @@ import java.util.Map;
 
 @Service
 @RequiredArgsConstructor
-@Transactional(readOnly = true)
+@Transactional(propagation = Propagation.NOT_SUPPORTED)
 public class AnalysisRequestService {
 
     private final GithubRepositoryClient githubRepositoryClient;
@@ -113,6 +113,7 @@ public class AnalysisRequestService {
         return LinkableRepositoryBranchListResponse.from(branches);
     }
 
+    @Transactional(readOnly = true)
     public AnalysisRequestStatusResponse getAnalysisRequestStatus(Long userId, Long analysisId) {
         Analysis analysis = analysisRepository.findWithRepositoryAndUserByAnalysisId(analysisId)
                 .filter(result -> result.getRepository().getUser().getUserId().equals(userId))
@@ -122,7 +123,6 @@ public class AnalysisRequestService {
     }
 
     //분석 요청 생성
-    @Transactional(propagation = Propagation.NOT_SUPPORTED)
     public AnalysisRequestCreateResponse createAnalysisRequest(
             Long userId,
             AnalysisRequestCreateRequest request
