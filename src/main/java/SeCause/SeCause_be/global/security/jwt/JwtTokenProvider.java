@@ -9,6 +9,7 @@ import org.springframework.stereotype.Component;
 
 import javax.crypto.SecretKey;
 import java.nio.charset.StandardCharsets;
+import java.time.Instant;
 import java.util.Date;
 import java.util.UUID;
 
@@ -37,13 +38,14 @@ public class JwtTokenProvider {
                 .compact();
     }
 
-    public String createRefreshToken(User user) {
+    public String createRefreshToken(User user, UUID sessionId) {
         Date now = new Date();
         Date expiration = new Date(now.getTime() + jwtProperties.refreshTokenExpiration());
 
         return Jwts.builder()
                 .subject(String.valueOf(user.getUserId()))
                 .claim(TOKEN_TYPE_CLAIM, REFRESH_TOKEN_TYPE)
+                .claim("sid", sessionId.toString())
                 .id(UUID.randomUUID().toString())
                 .issuedAt(now)
                 .expiration(expiration)
@@ -57,6 +59,18 @@ public class JwtTokenProvider {
 
     public Long getRefreshTokenUserId(String token) {
         return Long.valueOf(getRefreshTokenClaims(token).getSubject());
+    }
+
+    public UUID getRefreshTokenSessionId(String token) {
+        String sessionId = getRefreshTokenClaims(token).get("sid", String.class);
+        if (sessionId == null) {
+            throw new IllegalArgumentException("Missing refresh token session");
+        }
+        return UUID.fromString(sessionId);
+    }
+
+    public Instant getRefreshTokenExpiration(String token) {
+        return getRefreshTokenClaims(token).getExpiration().toInstant();
     }
 
     public boolean isValidAccessToken(String token) {

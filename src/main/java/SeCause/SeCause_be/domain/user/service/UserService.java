@@ -29,12 +29,6 @@ public class UserService {
                 .orElseGet(() -> userRepository.save(User.createGithubUser(githubId, githubLoginId, email, name, githubToken, avatarUrl)));
     }
 
-    @Transactional
-    public void updateRefreshTokenHash(User user, String refreshTokenHash) {
-        User currentUser = userValidator.validateUserForUpdate(user.getUserId());
-        currentUser.updateRefreshTokenHash(refreshTokenHash);
-    }
-
     @Transactional(readOnly = true)
     public UserMeResponse getMe(Long userId) {
         User user = userValidator.validateUser(userId);

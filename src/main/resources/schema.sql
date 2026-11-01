@@ -57,3 +57,14 @@ ALTER TABLE vulnerabilities
 -- NULL means code statistics have not been supplied by the analysis server.
 ALTER TABLE repositories
     ADD COLUMN IF NOT EXISTS languages JSONB@@
+
+-- Each login maintains its own rotating refresh token.
+CREATE TABLE IF NOT EXISTS login_sessions (
+    session_id UUID PRIMARY KEY,
+    user_id BIGINT NOT NULL REFERENCES users(user_id) ON DELETE CASCADE,
+    refresh_token_hash VARCHAR(128) NOT NULL,
+    expires_at TIMESTAMP WITH TIME ZONE NOT NULL
+)@@
+
+CREATE INDEX IF NOT EXISTS idx_login_sessions_user_id ON login_sessions(user_id)@@
+CREATE INDEX IF NOT EXISTS idx_login_sessions_expires_at ON login_sessions(expires_at)@@

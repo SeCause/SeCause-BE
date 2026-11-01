@@ -8,8 +8,7 @@ import SeCause.SeCause_be.domain.auth.dto.GithubLoginResult;
 import SeCause.SeCause_be.domain.auth.dto.GithubUserResponse;
 import SeCause.SeCause_be.domain.user.entity.User;
 import SeCause.SeCause_be.domain.user.service.UserService;
-import SeCause.SeCause_be.global.security.jwt.JwtTokenProvider;
-import SeCause.SeCause_be.global.security.jwt.RefreshTokenHasher;
+import SeCause.SeCause_be.domain.auth.dto.TokenReissueResult;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -19,8 +18,7 @@ public class GithubAuthService {
 
     private final GithubOAuthClient githubOAuthClient;
     private final UserService userService;
-    private final JwtTokenProvider jwtTokenProvider;
-    private final RefreshTokenHasher refreshTokenHasher;
+    private final AuthTokenService authTokenService;
 
     public GithubLoginResult login(GithubLoginRequest request) {
         GithubAccessTokenResponse tokenResponse = githubOAuthClient.requestAccessToken(request.code());
@@ -36,9 +34,7 @@ public class GithubAuthService {
                 tokenResponse.accessToken(),
                 userResponse.avatarUrl()
         );
-        String accessToken = jwtTokenProvider.createAccessToken(user);
-        String refreshToken = jwtTokenProvider.createRefreshToken(user);
-        userService.updateRefreshTokenHash(user, refreshTokenHasher.hash(refreshToken));
+        TokenReissueResult tokens = authTokenService.issue(user);
 
         GithubLoginResponse response = new GithubLoginResponse(
                 user.getUserId(),
@@ -49,6 +45,6 @@ public class GithubAuthService {
                 user.getAvatarUrl()
         );
 
-        return new GithubLoginResult(response, accessToken, refreshToken);
+        return new GithubLoginResult(response, tokens.accessToken(), tokens.refreshToken());
     }
 }
